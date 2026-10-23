@@ -1,4 +1,4 @@
-name: Qubit weather
+name: Qubit snakes and ladders
 
 on:
   schedule:
@@ -9,13 +9,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: qubit-weather
+  group: qubit-snakes
   cancel-in-progress: false
 
 jobs:
-  update:
+  roll:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The script waits up to 40 minutes for the QPU queue, then saves the job to pick up tomorrow.
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
 
@@ -28,20 +29,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Fetch calibration data and draw the map
+      - name: Roll the quantum dice and move
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
-        run: python qubit_weather.py
+        run: python qubit_snakes.py
 
       - name: Commit if changed
         run: |
-          git add qubit-weather.svg data/history.json
+          git add qubit-snakes.svg data/game.json
           if git diff --cached --quiet; then
-            echo "No change in calibration data"
+            echo "Nothing changed"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update qubit weather"
+          git commit -m "Roll the quantum dice"
           git push
