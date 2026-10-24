@@ -2,7 +2,7 @@
 
 The board is the heavy-hex layout of IBM's Fez processor (the fake_fez
 calibration snapshot). Row qubits are the squares, bridge qubits are the
-ladders, and noisy qubits are Schrodinger's cats that send you back. Each day the dice is rolled by
+ladders, and noisy qubits are cats that send you back: scary cats 3 squares, grumpy cats 2. Each day the dice is rolled by
 measuring three qubits in superposition on a real IBM Quantum processor.
 
     python qubit_snakes.py           # roll on a real QPU, needs IBM_QUANTUM_TOKEN
@@ -21,10 +21,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-CAT_READOUT = 0.02
-KITTEN_READOUT = 0.012
+SCARY_READOUT = 0.02
+GRUMPY_READOUT = 0.012
 GREEN_RUNG = 0.01
-PENALTY = {"cat": 3, "kitten": 2}
+PENALTY = {"scary": 3, "grumpy": 2}
 DICE_QUBITS = 3
 DICE_SHOTS = 16
 JOB_WAIT_SECONDS = 40 * 60
@@ -46,9 +46,9 @@ PACKAGE = "#1b2130"
 SUBSTRATE = "#232b3d"
 GOLD = "#c8a24a"
 COUPLER = "#5d6a88"
-QUBIT_FILL = {"calm": "#dfe7fb", "kitten": "#f6c86b", "cat": "#ef7f72"}
-QUBIT_INK = {"calm": "#1b2130", "kitten": "#5c3a00", "cat": "#5f140c"}
-PENALTY_INK = {"kitten": "#f6c86b", "cat": "#ff8f82"}
+QUBIT_FILL = {"calm": "#dfe7fb", "grumpy": "#f6c86b", "scary": "#ef7f72"}
+QUBIT_INK = {"calm": "#1b2130", "grumpy": "#5c3a00", "scary": "#5f140c"}
+PENALTY_INK = {"grumpy": "#f6c86b", "scary": "#ff8f82"}
 LADDER_OPEN = "#3fb950"
 LADDER_BLOCKED = "#ff6b6b"
 PAWN = "#a371f7"
@@ -76,9 +76,9 @@ class Board:
 
     def risk(self, qubit: int) -> str:
         error = self.readout.get(qubit)
-        if error is None or error > CAT_READOUT:
-            return "cat"
-        return "kitten" if error > KITTEN_READOUT else "calm"
+        if error is None or error > SCARY_READOUT:
+            return "scary"
+        return "grumpy" if error > GRUMPY_READOUT else "calm"
 
     @property
     def last(self) -> int:
@@ -162,8 +162,8 @@ def build_board(backend) -> Board:
         top, foot = ends
         couplers = {e: edges[tuple(sorted((middle, e)))] for e in ends}
         reason = None
-        if readout.get(middle, 1.0) > CAT_READOUT:
-            reason = "cat"
+        if readout.get(middle, 1.0) > SCARY_READOUT:
+            reason = "scary"
         elif max(couplers.values()) >= GREEN_RUNG:
             reason = "coupler"
         ladders[foot] = Ladder(foot=foot, middle=middle, top=top, is_open=reason is None, reason=reason, couplers=couplers)
@@ -338,15 +338,14 @@ def event_text(board: Board, event: dict) -> str:
     if kind == "finish":
         return f"{start} and reached the finish! A new game starts tomorrow."
     if kind in PENALTY:
-        who = "Schrödinger's cat" if kind == "cat" else "a kitten"
-        return (
-            f"{start}, where {who} on qubit {qubit} ({pct(board.readout.get(qubit))} readout error) "
-            f"knocked you back {PENALTY[kind]} to square {to}."
-        )
+        error = pct(board.readout.get(qubit))
+        if kind == "scary":
+            return f"{start}, where a scary cat (qubit {qubit} on the chip, {error} readout error) hissed and chased you back {PENALTY[kind]} to square {to}."
+        return f"{start}, where a grumpy cat (qubit {qubit} on the chip, {error} readout error) swatted you back {PENALTY[kind]} to square {to}."
     if kind == "ladder":
         return f"{start} and climbed the ladder through bridge qubit {event['middle']} to square {to}."
     if kind == "blocked":
-        why = "a cat sitting on the bridge qubit" if event["reason"] == "cat" else "a noisy coupler"
+        why = "a scary cat on the bridge qubit" if event["reason"] == "scary" else "a noisy coupler"
         return f"{start}, but the ladder through bridge qubit {event['middle']} is blocked by {why}."
     return f"{start}."
 
@@ -500,7 +499,7 @@ def ladder_svg(board: Board, ladder: Ladder, centre) -> str:
             f'<path d="M{mx - 3.5:.1f},{my - 3.5:.1f} l7,7 M{mx + 3.5:.1f},{my - 3.5:.1f} l-7,7" '
             f'stroke="{LADDER_BLOCKED if risk == "calm" else QUBIT_INK[risk]}" stroke-width="2" stroke-linecap="round"/>'
         )
-        status = "Blocked by a cat on the bridge qubit" if ladder.reason == "cat" else "Blocked by a noisy coupler"
+        status = "Blocked by a scary cat on the bridge qubit" if ladder.reason == "scary" else "Blocked by a noisy coupler"
     couplers = " and ".join(pct(ladder.couplers[end]) for end in (ladder.foot, ladder.top))
     tip = (
         f"Bridge qubit {ladder.middle}: a ladder from square {board.path.index(ladder.foot) + 1} "
@@ -528,8 +527,7 @@ def qubit_svg(board: Board, index: int, qubit: int, centre: tuple[float, float])
     risk = board.risk(qubit)
     tip = f"Square {index + 1}: qubit {qubit}\nReadout error {pct(board.readout.get(qubit))}"
     if risk != "calm":
-        who = "Schrödinger's cat" if risk == "cat" else "Kitten"
-        tip += f"\n{who}: back {PENALTY[risk]}"
+        tip += f"\n{risk.capitalize()} cat: back {PENALTY[risk]}"
     parts = [f"<g><title>{tip}</title>"]
     if risk != "calm":
         parts.append(cat_ears(cx, cy, QUBIT_RADIUS, risk))
@@ -538,8 +536,8 @@ def qubit_svg(board: Board, index: int, qubit: int, centre: tuple[float, float])
     if risk == "calm":
         parts.append(number(cx, cy + 3.5, index + 1, ink))
     else:
-        parts.append(f'<circle cx="{cx - 4:.1f}" cy="{cy - 4:.1f}" r="1.4" fill="{ink}"/><circle cx="{cx + 4:.1f}" cy="{cy - 4:.1f}" r="1.4" fill="{ink}"/>')
-        parts.append(number(cx, cy + 7, index + 1, ink, size=8.5))
+        parts.append(cat_face(cx, cy, risk))
+        parts.append(number(cx, cy + 6, index + 1, ink, size=8.5))
         parts.append(
             f'<text x="{cx + QUBIT_RADIUS + 5:.1f}" y="{cy + QUBIT_RADIUS + 4:.1f}" font-size="9.5" font-weight="700" '
             f'text-anchor="end" fill="{PENALTY_INK[risk]}" font-family="{SANS}">−{PENALTY[risk]}</text>'
@@ -553,10 +551,44 @@ def qubit_svg(board: Board, index: int, qubit: int, centre: tuple[float, float])
 
 
 def cat_ears(cx: float, cy: float, radius: float, risk: str) -> str:
-    size = 1.0 if risk == "cat" else 0.75
-    left = f"M{cx - radius * 0.85:.1f},{cy - radius * 0.35:.1f} L{cx - radius * 0.75:.1f},{cy - radius - 7 * size:.1f} L{cx - radius * 0.2:.1f},{cy - radius * 0.85:.1f} Z"
-    right = f"M{cx + radius * 0.85:.1f},{cy - radius * 0.35:.1f} L{cx + radius * 0.75:.1f},{cy - radius - 7 * size:.1f} L{cx + radius * 0.2:.1f},{cy - radius * 0.85:.1f} Z"
-    return f'<path d="{left} {right}" fill="{QUBIT_FILL[risk]}" stroke="{QUBIT_INK[risk]}" stroke-width="0.8" stroke-linejoin="round"/>'
+    """Scary cats have tall, sharp ears; grumpy cats have short, rounded ones."""
+    paths = []
+    for side in (-1, 1):
+        base_out = (cx + side * radius * 0.88, cy - radius * 0.3)
+        base_in = (cx + side * radius * 0.2, cy - radius * 0.88)
+        if risk == "scary":
+            tip = (cx + side * radius * 0.95, cy - radius - 8)
+            paths.append(f"M{base_out[0]:.1f},{base_out[1]:.1f} L{tip[0]:.1f},{tip[1]:.1f} L{base_in[0]:.1f},{base_in[1]:.1f} Z")
+        else:
+            tip = (cx + side * radius * 0.62, cy - radius - 4.5)
+            paths.append(
+                f"M{base_out[0]:.1f},{base_out[1]:.1f} Q{tip[0] + side * 2:.1f},{tip[1] - 1:.1f} {tip[0] - side * 1:.1f},{tip[1]:.1f} "
+                f"Q{base_in[0] + side * 1:.1f},{tip[1] + 1:.1f} {base_in[0]:.1f},{base_in[1]:.1f} Z"
+            )
+    return f'<path d="{" ".join(paths)}" fill="{QUBIT_FILL[risk]}" stroke="{QUBIT_INK[risk]}" stroke-width="0.8" stroke-linejoin="round"/>'
+
+
+def cat_face(cx: float, cy: float, risk: str) -> str:
+    ink = QUBIT_INK[risk]
+    if risk == "scary":
+        brows = f'<path d="M{cx - 8:.1f},{cy - 9:.1f} L{cx - 2:.1f},{cy - 5.5:.1f} M{cx + 8:.1f},{cy - 9:.1f} L{cx + 2:.1f},{cy - 5.5:.1f}" stroke="{ink}" stroke-width="1.6" stroke-linecap="round"/>'
+        eyes = "".join(
+            f'<path d="M{cx + side * 6.5:.1f},{cy - 4.5:.1f} L{cx + side * 2.5:.1f},{cy - 3:.1f} L{cx + side * 6:.1f},{cy - 2:.1f} Z" fill="{ink}"/>'
+            for side in (-1, 1)
+        )
+        fangs = "".join(
+            f'<path d="M{cx + x - 1.6:.1f},{cy + 8:.1f} L{cx + x + 1.6:.1f},{cy + 8:.1f} L{cx + x:.1f},{cy + 11.5:.1f} Z" fill="#ffffff" stroke="{ink}" stroke-width="0.6"/>'
+            for x in (-3.5, 3.5)
+        )
+        return brows + eyes + fangs
+    # Half-closed eyes under heavy, flat lids, and a frown below the number.
+    eyes = "".join(
+        f'<path d="M{cx + side * 4 - 3:.1f},{cy - 4:.1f} A3,3 0 0 0 {cx + side * 4 + 3:.1f},{cy - 4:.1f} Z" fill="{ink}"/>'
+        f'<line x1="{cx + side * 4 - 3.5:.1f}" y1="{cy - 4:.1f}" x2="{cx + side * 4 + 3.5:.1f}" y2="{cy - 4:.1f}" stroke="{ink}" stroke-width="1.6" stroke-linecap="round"/>'
+        for side in (-1, 1)
+    )
+    frown = f'<path d="M{cx - 3.5:.1f},{cy + 11:.1f} Q{cx:.1f},{cy + 8:.1f} {cx + 3.5:.1f},{cy + 11:.1f}" fill="none" stroke="{ink}" stroke-width="1.3" stroke-linecap="round"/>'
+    return eyes + frown
 
 
 def number(x: float, y: float, value: int, ink: str, size: float = 10) -> str:
@@ -586,16 +618,23 @@ def legend(out: list[str], left: float, top: float, gate: str) -> float:
     out.append(f'<circle cx="{left + 10}" cy="{y - 4}" r="9" fill="{QUBIT_FILL["calm"]}" stroke="{COUPLER}" stroke-width="1.5"/>')
     out.append(text(left + 26, y, "Every circle is a qubit on the chip; the number is its square in the game", "sans ink2", 13))
     y += 28
-    out.append(cat_ears(left + 10, y - 4, 9, "cat") + f'<circle cx="{left + 10}" cy="{y - 4}" r="9" fill="{QUBIT_FILL["cat"]}"/>')
-    out.append(text(left + 26, y, f"Schrödinger's cat: readout error above {pct(CAT_READOUT)}, back {PENALTY['cat']}", "sans ink2", 13))
-    out.append(cat_ears(left + 390, y - 4, 9, "kitten") + f'<circle cx="{left + 390}" cy="{y - 4}" r="9" fill="{QUBIT_FILL["kitten"]}"/>')
-    out.append(text(left + 406, y, f"Kitten: {pct(KITTEN_READOUT)} to {pct(CAT_READOUT)}, back {PENALTY['kitten']}", "sans ink2", 13))
+    for x, risk, label in (
+        (left, "scary", f"Scary cat: readout error above {pct(SCARY_READOUT)}, back {PENALTY['scary']}"),
+        (left + 370, "grumpy", f"Grumpy cat: {pct(GRUMPY_READOUT)} to {pct(SCARY_READOUT)}, back {PENALTY['grumpy']}"),
+    ):
+        out.append(
+            cat_ears(x + 12, y - 2, QUBIT_RADIUS, risk)
+            + f'<circle cx="{x + 12}" cy="{y - 2}" r="{QUBIT_RADIUS}" fill="{QUBIT_FILL[risk]}"/>'
+            + cat_face(x + 12, y - 2, risk)
+        )
+        out.append(text(x + 32, y + 2, label, "sans ink2", 13))
+    y += 6
     y += 28
     out.append(mini_ladder(left + 10, y - 4, LADDER_OPEN, False))
     out.append(text(left + 26, y, f"Bridge qubit with every {gate} coupler below {pct(GREEN_RUNG)} error: a ladder you can climb", "sans ink2", 13))
     y += 28
     out.append(mini_ladder(left + 10, y - 4, LADDER_BLOCKED, True))
-    out.append(text(left + 26, y, "Blocked ladder: a cat on the bridge qubit, or a noisy coupler", "sans ink2", 13))
+    out.append(text(left + 26, y, "Blocked ladder: a scary cat on the bridge qubit, or a noisy coupler", "sans ink2", 13))
     return y + 8
 
 

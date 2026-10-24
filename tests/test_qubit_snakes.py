@@ -31,7 +31,7 @@ def test_bridge_qubits_become_ladders(board):
     blocked = {ladder.middle: ladder.reason for ladder in board.ladders.values() if not ladder.is_open}
 
     assert len(board.ladders) == 28
-    assert blocked == {17: "coupler", 78: "cat", 116: "coupler", 117: "coupler", 119: "cat", 139: "coupler"}
+    assert blocked == {17: "coupler", 78: "scary", 116: "coupler", 117: "coupler", 119: "scary", 139: "coupler"}
     assert all(square_of(board, l.top) > square_of(board, l.foot) for l in board.ladders.values())
 
 
@@ -43,7 +43,7 @@ def test_plain_move(board):
     assert (to, event["kind"]) == (target, "move")
 
 
-@pytest.mark.parametrize(("risk", "penalty"), [("cat", 3), ("kitten", 2)])
+@pytest.mark.parametrize(("risk", "penalty"), [("scary", 3), ("grumpy", 2)])
 def test_noisy_qubits_send_you_back(board, risk, penalty):
     landed = next(i for i in range(6, board.last) if board.risk(board.path[i]) == risk)
 
@@ -58,7 +58,7 @@ def test_penalty_never_goes_below_start(board):
 
     to, event = qs.take_turn(board, 0, 1)
 
-    assert (to, event["kind"]) == (0, "cat")
+    assert (to, event["kind"]) == (0, "scary")
 
 
 def test_open_ladder_is_climbed(board):
@@ -125,7 +125,7 @@ def test_simulated_roll_is_a_dice_value():
     assert 1 <= qs.simulated_roll().value <= 6
 
 
-@pytest.mark.parametrize("kind", ["move", "cat", "kitten", "ladder", "blocked", "finish"])
+@pytest.mark.parametrize("kind", ["move", "scary", "grumpy", "ladder", "blocked", "finish"])
 def test_every_event_renders(board, kind):
     event = {"kind": kind, "from": 0, "landed": 5, "to": 3, "qubit": 145, "middle": 136, "reason": "coupler"}
     state = qs.advance({}, board, a_roll()) | {"event": event}
