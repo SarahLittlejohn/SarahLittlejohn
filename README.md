@@ -1,7 +1,3 @@
-# Hi, I'm Sarah
-
-I'm a Principal Consultant in AI, data and emerging tech, with a background in physics. Outside client work I build quantum computing side projects, including [qem-benchmark](https://github.com/SarahLittlejohn/qem-benchmark).
-
 ## Qubit snakes and ladders
 
 <img src="qubit-snakes.svg" width="100%" alt="A snakes and ladders board made from the layout of IBM's Fez quantum processor, showing today's quantum dice roll and where the counter landed.">
