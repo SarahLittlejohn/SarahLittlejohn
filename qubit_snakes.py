@@ -1,8 +1,8 @@
-"""Qubit snakes and ladders: one quantum dice roll a day on an IBM Quantum board.
+"""Qubit cats and ladders: one quantum dice roll a day on an IBM Quantum chip.
 
 The board is the heavy-hex layout of IBM's Fez processor (the fake_fez
 calibration snapshot). Row qubits are the squares, bridge qubits are the
-ladders, and noisy qubits send you back. Each day the dice is rolled by
+ladders, and noisy qubits are Schrodinger's cats that send you back. Each day the dice is rolled by
 measuring three qubits in superposition on a real IBM Quantum processor.
 
     python qubit_snakes.py           # roll on a real QPU, needs IBM_QUANTUM_TOKEN
@@ -21,39 +21,37 @@ from datetime import datetime, timezone
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-STORM_READOUT = 0.02
-CHOPPY_READOUT = 0.012
+CAT_READOUT = 0.02
+KITTEN_READOUT = 0.012
 GREEN_RUNG = 0.01
-STORM_PENALTY = 3
-CHOPPY_PENALTY = 2
+PENALTY = {"cat": 3, "kitten": 2}
 DICE_QUBITS = 3
 DICE_SHOTS = 16
 JOB_WAIT_SECONDS = 40 * 60
-RECENT_ROLLS = 10
+HISTORY_SHOWN = 20
 MIN_ROW_LENGTH = 3
 
 WIDTH = 1000
 MARGIN = 32
-CELL = 40
-FRAME = 14
-SIDEBAR_GAP = 34
+CELL = 38
+PADDING = 30
+QUBIT_RADIUS = 13
+BRIDGE_RADIUS = 10
+SIDEBAR_GAP = 30
 SERIF = "Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif"
 SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 
-# The board is a physical object, so it keeps the same colours in light and dark mode.
-WOOD = "#8a5a2e"
-BOARD = "#e9dbb8"
-TILE_LIGHT = "#fbf5e6"
-TILE_DARK = "#f1e4c6"
-TILE_LINE = "#cdb98f"
-TILE_INK = "#6b5a3a"
-CHOPPY_TILE = "#f6c86b"
-CHOPPY_INK = "#7a4b00"
-STORM_TILE = "#ef8f80"
-STORM_INK = "#7d1d12"
-LADDER_OPEN = "#2f7d32"
-LADDER_BLOCKED = "#b3261e"
-PAWN = "#6929c4"
+# The chip is a physical object, so it keeps the same colours in light and dark mode.
+PACKAGE = "#1b2130"
+SUBSTRATE = "#232b3d"
+GOLD = "#c8a24a"
+COUPLER = "#5d6a88"
+QUBIT_FILL = {"calm": "#dfe7fb", "kitten": "#f6c86b", "cat": "#ef7f72"}
+QUBIT_INK = {"calm": "#1b2130", "kitten": "#5c3a00", "cat": "#5f140c"}
+PENALTY_INK = {"kitten": "#f6c86b", "cat": "#ff8f82"}
+LADDER_OPEN = "#3fb950"
+LADDER_BLOCKED = "#ff6b6b"
+PAWN = "#a371f7"
 PIP = "#1f2328"
 
 
@@ -64,6 +62,7 @@ class Ladder:
     top: int
     is_open: bool
     reason: str | None
+    couplers: dict[int, float]
 
 
 @dataclass
@@ -77,9 +76,9 @@ class Board:
 
     def risk(self, qubit: int) -> str:
         error = self.readout.get(qubit)
-        if error is None or error > STORM_READOUT:
-            return "storm"
-        return "choppy" if error > CHOPPY_READOUT else "calm"
+        if error is None or error > CAT_READOUT:
+            return "cat"
+        return "kitten" if error > KITTEN_READOUT else "calm"
 
     @property
     def last(self) -> int:
@@ -161,13 +160,13 @@ def build_board(backend) -> Board:
         if len(ends) != 2 or not all(e in on_path for e in ends):
             continue
         top, foot = ends
-        rungs = [edges[tuple(sorted((middle, e)))] for e in ends]
+        couplers = {e: edges[tuple(sorted((middle, e)))] for e in ends}
         reason = None
-        if readout.get(middle, 1.0) > STORM_READOUT:
-            reason = "storm"
-        elif max(rungs) >= GREEN_RUNG:
-            reason = "rung"
-        ladders[foot] = Ladder(foot=foot, middle=middle, top=top, is_open=reason is None, reason=reason)
+        if readout.get(middle, 1.0) > CAT_READOUT:
+            reason = "cat"
+        elif max(couplers.values()) >= GREEN_RUNG:
+            reason = "coupler"
+        ladders[foot] = Ladder(foot=foot, middle=middle, top=top, is_open=reason is None, reason=reason, couplers=couplers)
     return Board(name=backend.name, path=path, coords=coords, readout=readout, ladders=ladders, gate=gate.upper())
 
 
@@ -282,7 +281,7 @@ def take_turn(board: Board, position: int, roll: int) -> tuple[int, dict]:
     qubit = board.path[landed]
     risk = board.risk(qubit)
     if risk != "calm":
-        to = max(landed - (STORM_PENALTY if risk == "storm" else CHOPPY_PENALTY), 0)
+        to = max(landed - PENALTY[risk], 0)
         return to, {**event, "kind": risk, "to": to}
     ladder = board.ladders.get(qubit)
     if ladder is None:
@@ -306,9 +305,20 @@ def advance(state: dict, board: Board, roll: Roll) -> dict:
         "games_finished": state.get("games_finished", 0) + (event["kind"] == "finish"),
         "roll": asdict(roll),
         "event": event,
-        "recent_rolls": (state.get("recent_rolls", []) + [roll.value])[-RECENT_ROLLS:],
+        "history": roll_history(state) + [history_entry(asdict(roll))],
         "pending_job": None,
     }
+
+
+def roll_history(state: dict) -> list[dict]:
+    """Every roll so far; older state files only kept the latest roll, so start from that."""
+    if "history" in state:
+        return state["history"]
+    return [history_entry(state["roll"])] if state.get("roll") else []
+
+
+def history_entry(roll: dict) -> dict:
+    return {key: roll[key] for key in ("value", "bits", "backend", "job_id", "rolled_at")}
 
 
 def load_state(path: Path) -> dict:
@@ -327,26 +337,28 @@ def event_text(board: Board, event: dict) -> str:
     kind = event["kind"]
     if kind == "finish":
         return f"{start} and reached the finish! A new game starts tomorrow."
-    if kind in ("storm", "choppy"):
-        penalty = STORM_PENALTY if kind == "storm" else CHOPPY_PENALTY
-        weather = "a storm" if kind == "storm" else "choppy water"
-        return f"{start}: {weather} on qubit {qubit} ({pct(board.readout.get(qubit))} readout error). Back {penalty} to square {to}."
+    if kind in PENALTY:
+        who = "Schrödinger's cat" if kind == "cat" else "a kitten"
+        return (
+            f"{start}, where {who} on qubit {qubit} ({pct(board.readout.get(qubit))} readout error) "
+            f"knocked you back {PENALTY[kind]} to square {to}."
+        )
     if kind == "ladder":
-        return f"{start} and climbed the green ladder through qubit {event['middle']} to square {to}."
+        return f"{start} and climbed the ladder through bridge qubit {event['middle']} to square {to}."
     if kind == "blocked":
-        why = "a storm on its middle qubit" if event["reason"] == "storm" else "a shaky rung"
-        return f"{start}, but the ladder through qubit {event['middle']} is blocked by {why}."
+        why = "a cat sitting on the bridge qubit" if event["reason"] == "cat" else "a noisy coupler"
+        return f"{start}, but the ladder through bridge qubit {event['middle']} is blocked by {why}."
     return f"{start}."
 
 
 def render(board: Board, state: dict) -> str:
     out: list[str] = []
-    out.append(text(MARGIN, 52, "Qubit snakes and ladders", "serif ink", 30))
+    out.append(text(MARGIN, 52, "Qubit cats and ladders", "serif ink", 30))
     out.append(
         text(
             MARGIN,
             80,
-            f"One quantum dice roll a day, on a board made from the layout of IBM's Fez processor ({board.name} calibration data).",
+            f"One quantum dice roll a day, played on the qubits of IBM's Fez processor ({board.name} calibration data).",
             "sans ink2",
             14,
         )
@@ -354,21 +366,21 @@ def render(board: Board, state: dict) -> str:
     top = 108
     cols = max(x for x, _ in board.coords.values()) + 1
     rows = max(y for _, y in board.coords.values()) + 1
-    board_left = MARGIN + FRAME
-    board_top = top + FRAME
-    out.append(
-        f'<rect x="{MARGIN}" y="{top}" width="{cols * CELL + 2 * FRAME}" height="{rows * CELL + 2 * FRAME}" rx="14" fill="{WOOD}"/>'
-    )
-    out.append(f'<rect x="{board_left}" y="{board_top}" width="{cols * CELL}" height="{rows * CELL}" rx="4" fill="{BOARD}"/>')
+    chip_width = cols * CELL + 2 * PADDING
+    chip_height = rows * CELL + 2 * PADDING
+    origin_x, origin_y = MARGIN + PADDING, top + PADDING
 
     def centre(q: int) -> tuple[float, float]:
         x, y = board.coords[q]
-        return board_left + (x + 0.5) * CELL, board_top + (y + 0.5) * CELL
+        return origin_x + (x + 0.5) * CELL, origin_y + (y + 0.5) * CELL
 
-    for index, qubit in enumerate(board.path):
-        out.append(tile(board, index, qubit, centre(qubit)))
+    out.append(chip_package(MARGIN, top, chip_width, chip_height))
+    out.extend(path_turns(board, centre))
+    out.extend(row_couplers(board, centre))
     for ladder in board.ladders.values():
         out.append(ladder_svg(board, ladder, centre))
+    for index, qubit in enumerate(board.path):
+        out.append(qubit_svg(board, index, qubit, centre(qubit)))
     if state:
         if state["previous"] != state["position"]:
             out.append(pawn(*centre(board.path[state["previous"]]), ghost=True))
@@ -376,9 +388,8 @@ def render(board: Board, state: dict) -> str:
     else:
         out.append(pawn(*centre(board.path[0])))
 
-    board_bottom = top + rows * CELL + 2 * FRAME
-    legend_bottom = legend(out, MARGIN, board_bottom + 30)
-    sidebar_left = MARGIN + cols * CELL + 2 * FRAME + SIDEBAR_GAP
+    legend_bottom = legend(out, MARGIN, top + chip_height + 34, board.gate)
+    sidebar_left = MARGIN + chip_width + SIDEBAR_GAP
     sidebar_bottom = sidebar(out, sidebar_left, top, WIDTH - MARGIN - sidebar_left, board, state)
     height = max(legend_bottom, sidebar_bottom) + MARGIN
 
@@ -386,7 +397,7 @@ def render(board: Board, state: dict) -> str:
     return "\n".join(
         [
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{height}" viewBox="0 0 {WIDTH} {height}" role="img" aria-labelledby="qs-title qs-desc">',
-            '<title id="qs-title">Qubit snakes and ladders</title>',
+            '<title id="qs-title">Qubit cats and ladders</title>',
             f'<desc id="qs-desc">{escape(summary)}</desc>',
             STYLE,
             f'<rect class="bg" width="{WIDTH}" height="{height}" rx="12"/>',
@@ -411,84 +422,96 @@ STYLE = f"""<style>
 </style>"""
 
 
-def tile(board: Board, index: int, qubit: int, centre: tuple[float, float]) -> str:
-    cx, cy = centre
-    x, y = cx - CELL / 2, cy - CELL / 2
-    risk = board.risk(qubit)
-    fill = {"storm": STORM_TILE, "choppy": CHOPPY_TILE}.get(risk, TILE_DARK if index % 2 else TILE_LIGHT)
-    tip = f"Square {index + 1}: qubit {qubit}\nReadout error {pct(board.readout.get(qubit))}"
-    if risk != "calm":
-        tip += f"\n{'Storm' if risk == 'storm' else 'Choppy'}: back {STORM_PENALTY if risk == 'storm' else CHOPPY_PENALTY}"
-    label = "Start" if index == 0 else "Finish" if index == board.last else str(index + 1)
-    parts = [
-        f'<g><title>{tip}</title>',
-        f'<rect x="{x:.1f}" y="{y:.1f}" width="{CELL}" height="{CELL}" fill="{fill}" stroke="{TILE_LINE}" stroke-width="1"/>',
-        f'<text x="{x + 3:.1f}" y="{y + 11:.1f}" font-size="{8 if index in (0, board.last) else 9.5}" fill="{TILE_INK}" font-family="{SANS}">{label}</text>',
-    ]
-    if risk != "calm":
-        ink = STORM_INK if risk == "storm" else CHOPPY_INK
-        penalty = STORM_PENALTY if risk == "storm" else CHOPPY_PENALTY
-        parts.append(snake(cx - 1, cy + 3, ink, 1.0 if risk == "storm" else 0.8))
-        parts.append(
-            f'<text x="{x + CELL - 3:.1f}" y="{y + CELL - 4:.1f}" font-size="10" font-weight="700" text-anchor="end" fill="{ink}" font-family="{SANS}">−{penalty}</text>'
-        )
-    if index == board.last:
-        parts.append(star(cx, cy + 4, 9))
-    parts.append("</g>")
-    return "".join(parts)
-
-
-def snake(x: float, y: float, colour: str, scale: float) -> str:
-    return (
-        f'<g transform="translate({x:.1f} {y:.1f}) scale({scale})">'
-        f'<path d="M-11,5 C-8,-4 -3,-4 -1,1 S6,7 9,-3" fill="none" stroke="{colour}" stroke-width="3.2" stroke-linecap="round"/>'
-        f'<circle cx="9.5" cy="-4" r="3" fill="{colour}"/>'
-        f'<circle cx="10.3" cy="-4.8" r="0.9" fill="#ffffff"/>'
-        "</g>"
+def chip_package(x: float, y: float, width: float, height: float) -> str:
+    pins = []
+    for px in frange_up(x + 24, x + width - 20, 22):
+        pins.append(f'<rect x="{px:.1f}" y="{y - 5}" width="6" height="7" rx="1" fill="{GOLD}"/>')
+        pins.append(f'<rect x="{px:.1f}" y="{y + height - 2}" width="6" height="7" rx="1" fill="{GOLD}"/>')
+    for py in frange_up(y + 24, y + height - 20, 22):
+        pins.append(f'<rect x="{x - 5}" y="{py:.1f}" width="7" height="6" rx="1" fill="{GOLD}"/>')
+        pins.append(f'<rect x="{x + width - 2}" y="{py:.1f}" width="7" height="6" rx="1" fill="{GOLD}"/>')
+    return "".join(
+        pins
+        + [
+            f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="14" fill="{PACKAGE}" stroke="{GOLD}" stroke-width="2"/>',
+            f'<rect x="{x + 8}" y="{y + 8}" width="{width - 16}" height="{height - 16}" rx="8" fill="{SUBSTRATE}"/>',
+        ]
     )
 
 
-def star(cx: float, cy: float, r: float) -> str:
-    points = []
-    for k in range(10):
-        radius = r if k % 2 == 0 else r * 0.45
-        angle = -math.pi / 2 + k * math.pi / 5
-        points.append(f"{cx + radius * math.cos(angle):.1f},{cy + radius * math.sin(angle):.1f}")
-    return f'<polygon points="{" ".join(points)}" fill="#e3a008" stroke="{TILE_INK}" stroke-width="0.8"/>'
+def frange_up(start: float, stop: float, step: float) -> list[float]:
+    values, value = [], start
+    while value <= stop:
+        values.append(value)
+        value += step
+    return values
+
+
+def path_turns(board: Board, centre) -> list[str]:
+    """Dotted arrows round the end of each row, showing which way play continues."""
+    parts = []
+    cols = max(x for x, _ in board.coords.values())
+    for a, b in zip(board.path, board.path[1:]):
+        if board.coords[a][1] == board.coords[b][1]:
+            continue
+        (ax, ay), (bx, by) = centre(a), centre(b)
+        side = 1 if board.coords[a][0] == cols else -1
+        edge = ax + side * QUBIT_RADIUS
+        bulge = edge + side * 20
+        parts.append(
+            f'<path d="M{edge:.1f},{ay:.1f} C{bulge:.1f},{ay:.1f} {bulge:.1f},{by:.1f} {edge + side * 3:.1f},{by:.1f}" '
+            f'fill="none" stroke="{GOLD}" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8"/>'
+        )
+        tip = edge + side * 1
+        parts.append(
+            f'<path d="M{tip:.1f},{by:.1f} l{side * 6:.1f},-4 l0,8 Z" fill="{GOLD}" opacity="0.9"/>'
+        )
+    return parts
+
+
+def row_couplers(board: Board, centre) -> list[str]:
+    parts = []
+    for a, b in zip(board.path, board.path[1:]):
+        if board.coords[a][1] != board.coords[b][1]:
+            continue
+        (ax, ay), (bx, by) = centre(a), centre(b)
+        parts.append(f'<line x1="{ax:.1f}" y1="{ay:.1f}" x2="{bx:.1f}" y2="{by:.1f}" stroke="{COUPLER}" stroke-width="3"/>')
+    return parts
 
 
 def ladder_svg(board: Board, ladder: Ladder, centre) -> str:
-    (fx, fy), (tx, ty) = centre(ladder.foot), centre(ladder.top)
+    (fx, fy), (mx, my), (tx, ty) = centre(ladder.foot), centre(ladder.middle), centre(ladder.top)
     colour = LADDER_OPEN if ladder.is_open else LADDER_BLOCKED
-    dash = "" if ladder.is_open else ' stroke-dasharray="5 3"'
-    rail = 7
-    # Stop at the tile edges so the ladder never hides a square's number or penalty.
-    y0, y1 = fy - CELL / 2 + 2, ty + CELL / 2 - 2
-    rungs = "".join(
-        f'<line x1="{fx - rail:.1f}" y1="{y:.1f}" x2="{fx + rail:.1f}" y2="{y:.1f}" stroke="{colour}" stroke-width="2.5"{dash}/>'
-        for y in frange(y0 - 4, y1 + 3, 8)
-    )
-    rails = "".join(
-        f'<line x1="{x:.1f}" y1="{y0:.1f}" x2="{x:.1f}" y2="{y1:.1f}" stroke="{colour}" stroke-width="3" stroke-linecap="round"{dash}/>'
-        for x in (fx - rail, fx + rail)
-    )
-    middle = ladder.middle
-    mx, my = centre(middle)
-    risk = board.risk(middle)
-    dot = {"storm": STORM_TILE, "choppy": CHOPPY_TILE}.get(risk, TILE_LIGHT)
-    status = "Open: climb!" if ladder.is_open else "Blocked by a storm on the middle qubit" if ladder.reason == "storm" else "Blocked by a shaky rung"
+    dash = "" if ladder.is_open else ' stroke-dasharray="4 3"'
+    segments = ((fy - QUBIT_RADIUS, my + BRIDGE_RADIUS), (my - BRIDGE_RADIUS, ty + QUBIT_RADIUS))
+    parts = []
+    for y0, y1 in segments:
+        for x in (fx - 4, fx + 4):
+            parts.append(f'<line x1="{x:.1f}" y1="{y0:.1f}" x2="{x:.1f}" y2="{y1:.1f}" stroke="{colour}" stroke-width="2"{dash}/>')
+        for y in frange(y0 - 3, y1 + 2, 5):
+            parts.append(f'<line x1="{fx - 4:.1f}" y1="{y:.1f}" x2="{fx + 4:.1f}" y2="{y:.1f}" stroke="{colour}" stroke-width="1.5"/>')
+
+    risk = board.risk(ladder.middle)
+    if ladder.is_open:
+        mark = f'<path d="M{mx:.1f},{my - 5:.1f} l4.5,5 h-3 v4.5 h-3 v-4.5 h-3 Z" fill="{LADDER_OPEN}"/>'
+        status = "Open: climb!"
+    else:
+        mark = (
+            f'<path d="M{mx - 3.5:.1f},{my - 3.5:.1f} l7,7 M{mx + 3.5:.1f},{my - 3.5:.1f} l-7,7" '
+            f'stroke="{LADDER_BLOCKED if risk == "calm" else QUBIT_INK[risk]}" stroke-width="2" stroke-linecap="round"/>'
+        )
+        status = "Blocked by a cat on the bridge qubit" if ladder.reason == "cat" else "Blocked by a noisy coupler"
+    couplers = " and ".join(pct(ladder.couplers[end]) for end in (ladder.foot, ladder.top))
     tip = (
-        f"Ladder through qubit {middle}: square {board.path.index(ladder.foot) + 1} to {board.path.index(ladder.top) + 1}\n"
-        f"Middle qubit readout error {pct(board.readout.get(middle))}\n{status}"
+        f"Bridge qubit {ladder.middle}: a ladder from square {board.path.index(ladder.foot) + 1} "
+        f"to {board.path.index(ladder.top) + 1}\nReadout error {pct(board.readout.get(ladder.middle))}\n"
+        f"{board.gate} errors {couplers}\n{status}"
     )
-    badge = (
-        f'<path d="M{mx - 3:.1f},{my - 3:.1f} L{mx + 3:.1f},{my + 3:.1f} M{mx + 3:.1f},{my - 3:.1f} L{mx - 3:.1f},{my + 3:.1f}" stroke="{LADDER_BLOCKED}" stroke-width="2" stroke-linecap="round"/>'
-        if not ladder.is_open
-        else ""
-    )
+    ears = cat_ears(mx, my, BRIDGE_RADIUS, risk) if risk != "calm" else ""
     return (
-        f"<g><title>{tip}</title>{rungs}{rails}"
-        f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="7" fill="{dot}" stroke="{colour}" stroke-width="2"/>{badge}</g>'
+        f"<g><title>{tip}</title>{''.join(parts)}{ears}"
+        f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{BRIDGE_RADIUS}" fill="{QUBIT_FILL[risk]}" stroke="{colour}" stroke-width="2"/>'
+        f"{mark}</g>"
     )
 
 
@@ -500,47 +523,87 @@ def frange(start: float, stop: float, step: float) -> list[float]:
     return values
 
 
+def qubit_svg(board: Board, index: int, qubit: int, centre: tuple[float, float]) -> str:
+    cx, cy = centre
+    risk = board.risk(qubit)
+    tip = f"Square {index + 1}: qubit {qubit}\nReadout error {pct(board.readout.get(qubit))}"
+    if risk != "calm":
+        who = "Schrödinger's cat" if risk == "cat" else "Kitten"
+        tip += f"\n{who}: back {PENALTY[risk]}"
+    parts = [f"<g><title>{tip}</title>"]
+    if risk != "calm":
+        parts.append(cat_ears(cx, cy, QUBIT_RADIUS, risk))
+    parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{QUBIT_RADIUS}" fill="{QUBIT_FILL[risk]}"/>')
+    ink = QUBIT_INK[risk]
+    if risk == "calm":
+        parts.append(number(cx, cy + 3.5, index + 1, ink))
+    else:
+        parts.append(f'<circle cx="{cx - 4:.1f}" cy="{cy - 4:.1f}" r="1.4" fill="{ink}"/><circle cx="{cx + 4:.1f}" cy="{cy - 4:.1f}" r="1.4" fill="{ink}"/>')
+        parts.append(number(cx, cy + 7, index + 1, ink, size=8.5))
+        parts.append(
+            f'<text x="{cx + QUBIT_RADIUS + 5:.1f}" y="{cy + QUBIT_RADIUS + 4:.1f}" font-size="9.5" font-weight="700" '
+            f'text-anchor="end" fill="{PENALTY_INK[risk]}" font-family="{SANS}">−{PENALTY[risk]}</text>'
+        )
+    if index == 0:
+        parts.append(f'<text x="{cx:.1f}" y="{cy + QUBIT_RADIUS + 14:.1f}" font-size="10" text-anchor="middle" fill="{GOLD}" font-family="{SANS}" font-weight="600">Start</text>')
+    if index == board.last:
+        parts.append(f'<text x="{cx:.1f}" y="{cy - QUBIT_RADIUS - 6:.1f}" font-size="10" text-anchor="middle" fill="{GOLD}" font-family="{SANS}" font-weight="600">Finish ★</text>')
+    parts.append("</g>")
+    return "".join(parts)
+
+
+def cat_ears(cx: float, cy: float, radius: float, risk: str) -> str:
+    size = 1.0 if risk == "cat" else 0.75
+    left = f"M{cx - radius * 0.85:.1f},{cy - radius * 0.35:.1f} L{cx - radius * 0.75:.1f},{cy - radius - 7 * size:.1f} L{cx - radius * 0.2:.1f},{cy - radius * 0.85:.1f} Z"
+    right = f"M{cx + radius * 0.85:.1f},{cy - radius * 0.35:.1f} L{cx + radius * 0.75:.1f},{cy - radius - 7 * size:.1f} L{cx + radius * 0.2:.1f},{cy - radius * 0.85:.1f} Z"
+    return f'<path d="{left} {right}" fill="{QUBIT_FILL[risk]}" stroke="{QUBIT_INK[risk]}" stroke-width="0.8" stroke-linejoin="round"/>'
+
+
+def number(x: float, y: float, value: int, ink: str, size: float = 10) -> str:
+    return f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" font-weight="700" text-anchor="middle" fill="{ink}" font-family="{SANS}">{value}</text>'
+
+
 def pawn(cx: float, cy: float, ghost: bool = False) -> str:
-    cx, cy = cx + 4, cy + 5
+    """The pawn stands on top of its qubit, with a ring round it, so the square number stays readable."""
+    ring = f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{QUBIT_RADIUS + 3}" fill="none" stroke="{PAWN}" stroke-width="2.5"{" stroke-dasharray=\"3 2\"" if ghost else ""}/>'
+    cx, cy = cx + 9, cy - 19
     style = (
-        f'fill="none" stroke="{PAWN}" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.7"'
+        f'fill="none" stroke="{PAWN}" stroke-width="1.5" stroke-dasharray="3 2"'
         if ghost
         else f'fill="{PAWN}" stroke="#ffffff" stroke-width="1.5"'
     )
     label = "Previous square" if ghost else "You are here"
     return (
-        f"<g><title>{label}</title>"
-        f'<path d="M{cx - 12:.1f},{cy + 15:.1f} Q{cx:.1f},{cy + 8:.1f} {cx + 12:.1f},{cy + 15:.1f} L{cx + 6:.1f},{cy:.1f} Q{cx:.1f},{cy - 3:.1f} {cx - 6:.1f},{cy:.1f} Z" {style}/>'
-        f'<circle cx="{cx:.1f}" cy="{cy - 8:.1f}" r="7.5" {style}/>'
+        f"<g><title>{label}</title>{ring}"
+        f'<path d="M{cx - 11:.1f},{cy + 14:.1f} Q{cx:.1f},{cy + 8:.1f} {cx + 11:.1f},{cy + 14:.1f} L{cx + 5.5:.1f},{cy:.1f} Q{cx:.1f},{cy - 3:.1f} {cx - 5.5:.1f},{cy:.1f} Z" {style}/>'
+        f'<circle cx="{cx:.1f}" cy="{cy - 7:.1f}" r="7" {style}/>'
         "</g>"
     )
 
 
-def legend(out: list[str], left: float, top: float) -> float:
+def legend(out: list[str], left: float, top: float, gate: str) -> float:
     y = top
-    items = [
-        (f'<rect x="{left}" y="{y - 13}" width="18" height="18" fill="{TILE_LIGHT}" stroke="{TILE_LINE}"/>', "Calm qubit"),
-        (f'<rect x="{left}" y="{y - 13}" width="18" height="18" fill="{CHOPPY_TILE}" stroke="{TILE_LINE}"/>', f"Choppy: readout error {pct(CHOPPY_READOUT)} to {pct(STORM_READOUT)}, back {CHOPPY_PENALTY}"),
-        (f'<rect x="{left}" y="{y - 13}" width="18" height="18" fill="{STORM_TILE}" stroke="{TILE_LINE}"/>', f"Storm: readout error above {pct(STORM_READOUT)}, back {STORM_PENALTY}"),
-    ]
-    x = left
-    widths = (130, 320, 260)
-    for (swatch, label), width in zip(items, widths):
-        out.append(swatch.replace(f'x="{left}"', f'x="{x}"'))
-        out.append(text(x + 26, y, label, "sans ink2", 13))
-        x += width
-    y += 30
-    out.append(mini_ladder(left + 9, y - 4, LADDER_OPEN, False))
-    out.append(text(left + 26, y, f"Green ladder: every rung below {pct(GREEN_RUNG)} CZ error, so climb it", "sans ink2", 13))
-    out.append(mini_ladder(left + 439, y - 4, LADDER_BLOCKED, True))
-    out.append(text(left + 456, y, "Blocked: a storm on the middle qubit or a shaky rung", "sans ink2", 13))
+    out.append(f'<circle cx="{left + 10}" cy="{y - 4}" r="9" fill="{QUBIT_FILL["calm"]}" stroke="{COUPLER}" stroke-width="1.5"/>')
+    out.append(text(left + 26, y, "Every circle is a qubit on the chip; the number is its square in the game", "sans ink2", 13))
+    y += 28
+    out.append(cat_ears(left + 10, y - 4, 9, "cat") + f'<circle cx="{left + 10}" cy="{y - 4}" r="9" fill="{QUBIT_FILL["cat"]}"/>')
+    out.append(text(left + 26, y, f"Schrödinger's cat: readout error above {pct(CAT_READOUT)}, back {PENALTY['cat']}", "sans ink2", 13))
+    out.append(cat_ears(left + 390, y - 4, 9, "kitten") + f'<circle cx="{left + 390}" cy="{y - 4}" r="9" fill="{QUBIT_FILL["kitten"]}"/>')
+    out.append(text(left + 406, y, f"Kitten: {pct(KITTEN_READOUT)} to {pct(CAT_READOUT)}, back {PENALTY['kitten']}", "sans ink2", 13))
+    y += 28
+    out.append(mini_ladder(left + 10, y - 4, LADDER_OPEN, False))
+    out.append(text(left + 26, y, f"Bridge qubit with every {gate} coupler below {pct(GREEN_RUNG)} error: a ladder you can climb", "sans ink2", 13))
+    y += 28
+    out.append(mini_ladder(left + 10, y - 4, LADDER_BLOCKED, True))
+    out.append(text(left + 26, y, "Blocked ladder: a cat on the bridge qubit, or a noisy coupler", "sans ink2", 13))
     return y + 8
 
 
 def mini_ladder(cx: float, cy: float, colour: str, dashed: bool) -> str:
     dash = ' stroke-dasharray="3 2"' if dashed else ""
-    parts = [f'<line x1="{x}" y1="{cy - 10}" x2="{x}" y2="{cy + 10}" stroke="{colour}" stroke-width="2.5"{dash}/>' for x in (cx - 5, cx + 5)]
-    parts += [f'<line x1="{cx - 5}" y1="{y}" x2="{cx + 5}" y2="{y}" stroke="{colour}" stroke-width="2"/>' for y in (cy - 6, cy, cy + 6)]
+    parts = [f'<line x1="{x}" y1="{cy - 11}" x2="{x}" y2="{cy + 11}" stroke="{colour}" stroke-width="2"{dash}/>' for x in (cx - 4, cx + 4)]
+    parts += [f'<line x1="{cx - 4}" y1="{y}" x2="{cx + 4}" y2="{y}" stroke="{colour}" stroke-width="1.5"/>' for y in (cy - 8, cy - 4, cy + 4, cy + 8)]
+    parts.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{QUBIT_FILL["calm"]}" stroke="{colour}" stroke-width="1.5"/>')
     return "".join(parts)
 
 
@@ -583,12 +646,19 @@ def sidebar(out: list[str], left: float, top: float, width: float, board: Board,
         out.append(text(left + width, y, value, "sans ink", 13, anchor="end", weight=600))
         y += 22
     y += 10
-    out.append(text(left, y, "Recent rolls", "sans ink2", 13))
+    history = roll_history(state)
+    count = len(history)
+    out.append(text(left, y, f"Roll history ({count} roll{'s' if count != 1 else ''})", "sans ink2", 13))
     y += 10
-    size, gap = 20, 3.5
-    for k, value in enumerate(state["recent_rolls"]):
-        out.append(die(left + k * (size + gap), y, size, value))
-    return y + size
+    size, gap, per_row = 20, 3.5, 10
+    shown = history[-HISTORY_SHOWN:]
+    for k, entry in enumerate(shown):
+        x = left + (k % per_row) * (size + gap)
+        row_y = y + (k // per_row) * (size + gap)
+        day = datetime.fromisoformat(entry["rolled_at"])
+        tip = f"Roll {count - len(shown) + k + 1}: {entry['value']} on {entry['backend']}, {day.day} {day:%b %Y}\nMeasured |{entry['bits']}⟩"
+        out.append(f"<g><title>{escape(tip)}</title>{die(x, row_y, size, entry['value'])}</g>")
+    return y + ((len(shown) - 1) // per_row + 1) * (size + gap)
 
 
 def die(x: float, y: float, size: float, value: int | None) -> str:

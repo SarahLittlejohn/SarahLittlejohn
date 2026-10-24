@@ -1,5 +1,5 @@
-<img src="qubit-snakes.svg" width="100%" alt="A snakes and ladders board made from the layout of IBM's Fez quantum processor, showing today's quantum dice roll and where the counter landed.">
+<img src="qubit-snakes.svg" width="100%" alt="A cats and ladders board drawn as IBM's Fez quantum chip, showing today's quantum dice roll and where the pawn landed.">
 
-A game that plays itself, one move a day. The board is the heavy-hex layout of IBM's Fez processor: each square is a qubit and each ladder is a bridge qubit linking two rows. Noisy qubits act as snakes: land on a storm (readout error above 2%) and you go back 3 squares, or on choppy water (1.2% to 2%) and you go back 2. You can climb a ladder only if it's green, meaning every rung has a CZ error below 1% and the qubit in the middle isn't a storm.
+A game that plays itself, one move a day, on the qubits of IBM's Fez processor. Every circle is a qubit, numbered in order of play. The ladders are the bridge qubits that link one row of the chip to the next: you can climb one if both of its couplers have a CZ error below 1% and there's no cat on the bridge qubit. Noisy qubits are Schrödinger's cats: land on a cat (readout error above 2%) and you go back 3, or on a kitten (1.2% to 2%) and you go back 2.
 
 Every morning at 07:30 UTC a [GitHub Action](.github/workflows/qubit-snakes.yml) runs [qubit_snakes.py](qubit_snakes.py), which rolls the dice by putting three qubits into superposition on a real IBM Quantum processor and measuring them.

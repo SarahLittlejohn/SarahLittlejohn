@@ -31,7 +31,7 @@ def test_bridge_qubits_become_ladders(board):
     blocked = {ladder.middle: ladder.reason for ladder in board.ladders.values() if not ladder.is_open}
 
     assert len(board.ladders) == 28
-    assert blocked == {17: "rung", 78: "storm", 116: "rung", 117: "rung", 119: "storm", 139: "rung"}
+    assert blocked == {17: "coupler", 78: "cat", 116: "coupler", 117: "coupler", 119: "cat", 139: "coupler"}
     assert all(square_of(board, l.top) > square_of(board, l.foot) for l in board.ladders.values())
 
 
@@ -43,7 +43,7 @@ def test_plain_move(board):
     assert (to, event["kind"]) == (target, "move")
 
 
-@pytest.mark.parametrize(("risk", "penalty"), [("storm", qs.STORM_PENALTY), ("choppy", qs.CHOPPY_PENALTY)])
+@pytest.mark.parametrize(("risk", "penalty"), [("cat", 3), ("kitten", 2)])
 def test_noisy_qubits_send_you_back(board, risk, penalty):
     landed = next(i for i in range(6, board.last) if board.risk(board.path[i]) == risk)
 
@@ -58,7 +58,7 @@ def test_penalty_never_goes_below_start(board):
 
     to, event = qs.take_turn(board, 0, 1)
 
-    assert (to, event["kind"]) == (0, "storm")
+    assert (to, event["kind"]) == (0, "cat")
 
 
 def test_open_ladder_is_climbed(board):
@@ -89,12 +89,24 @@ def test_reaching_the_end_finishes_and_next_roll_starts_a_new_game(board):
     assert (restarted["game"], restarted["turn"], restarted["previous"]) == (3, 1, 0)
 
 
-def test_recent_rolls_are_capped(board):
+def test_every_roll_is_kept_in_the_history(board):
     state = {}
-    for _ in range(qs.RECENT_ROLLS + 3):
-        state = qs.advance(state, board, a_roll(1))
+    for value in (1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5):
+        state = qs.advance(state, board, a_roll(value))
 
-    assert len(state["recent_rolls"]) == qs.RECENT_ROLLS
+    assert len(state["history"]) == 23
+    assert [e["value"] for e in state["history"][:3]] == [1, 2, 3]
+
+
+def test_history_starts_from_the_last_roll_of_an_older_state_file(board):
+    older = qs.advance({}, board, a_roll(6))
+    del older["history"]
+    older["recent_rolls"] = [6]
+
+    state = qs.advance(older, board, a_roll(2))
+
+    assert [e["value"] for e in state["history"]] == [6, 2]
+    assert state["position"] == older["position"] + 2 or state["event"]["kind"] != "move"
 
 
 @pytest.mark.parametrize(("bitstrings", "value", "discarded"), [(["000"], 1, 0), (["101"], 6, 0), (["111", "110", "011"], 4, 2)])
@@ -113,14 +125,14 @@ def test_simulated_roll_is_a_dice_value():
     assert 1 <= qs.simulated_roll().value <= 6
 
 
-@pytest.mark.parametrize("kind", ["move", "storm", "choppy", "ladder", "blocked", "finish"])
+@pytest.mark.parametrize("kind", ["move", "cat", "kitten", "ladder", "blocked", "finish"])
 def test_every_event_renders(board, kind):
-    event = {"kind": kind, "from": 0, "landed": 5, "to": 3, "qubit": 145, "middle": 136, "reason": "rung"}
+    event = {"kind": kind, "from": 0, "landed": 5, "to": 3, "qubit": 145, "middle": 136, "reason": "coupler"}
     state = qs.advance({}, board, a_roll()) | {"event": event}
 
     svg = qs.render(board, state)
 
-    assert qs.event_text(board, event).split(".")[0] in svg.replace("&amp;", "&")
+    assert qs.event_text(board, event).split(",")[0] in svg
 
 
 def test_render_before_first_roll(board):
