@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="836" viewBox="0 0 1000 836" role="img" aria-labelledby="qs-title qs-desc">
 <title id="qs-title">Qubit snakes and ladders</title>
-<desc id="qs-desc">Waiting for the first roll.</desc>
+<desc id="qs-desc">Moved from square 1 to 7.</desc>
 <style>
   .bg { fill: #ffffff; }
   .ink { fill: #1f2328; }
@@ -398,7 +398,8 @@ Open: climb!</title><line x1="499.0" y1="680.0" x2="513.0" y2="680.0" stroke="#2
 <g><title>Ladder through qubit 139: square 16 to 17
 Middle qubit readout error 0.7%
 Blocked by a shaky rung</title><line x1="659.0" y1="680.0" x2="673.0" y2="680.0" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="5 3"/><line x1="659.0" y1="672.0" x2="673.0" y2="672.0" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="5 3"/><line x1="659.0" y1="664.0" x2="673.0" y2="664.0" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="5 3"/><line x1="659.0" y1="656.0" x2="673.0" y2="656.0" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="5 3"/><line x1="659.0" y1="648.0" x2="673.0" y2="648.0" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="5 3"/><line x1="659.0" y1="684.0" x2="659.0" y2="640.0" stroke="#b3261e" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 3"/><line x1="673.0" y1="684.0" x2="673.0" y2="640.0" stroke="#b3261e" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 3"/><circle cx="666.0" cy="662.0" r="7" fill="#fbf5e6" stroke="#b3261e" stroke-width="2"/><path d="M663.0,659.0 L669.0,665.0 M669.0,659.0 L663.0,665.0" stroke="#b3261e" stroke-width="2" stroke-linecap="round"/></g>
-<g><title>You are here</title><path d="M58.0,722.0 Q70.0,715.0 82.0,722.0 L76.0,707.0 Q70.0,704.0 64.0,707.0 Z" fill="#6929c4" stroke="#ffffff" stroke-width="1.5"/><circle cx="70.0" cy="699.0" r="7.5" fill="#6929c4" stroke="#ffffff" stroke-width="1.5"/></g>
+<g><title>Previous square</title><path d="M58.0,722.0 Q70.0,715.0 82.0,722.0 L76.0,707.0 Q70.0,704.0 64.0,707.0 Z" fill="none" stroke="#6929c4" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.7"/><circle cx="70.0" cy="699.0" r="7.5" fill="none" stroke="#6929c4" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.7"/></g>
+<g><title>You are here</title><path d="M298.0,722.0 Q310.0,715.0 322.0,722.0 L316.0,707.0 Q310.0,704.0 304.0,707.0 Z" fill="#6929c4" stroke="#ffffff" stroke-width="1.5"/><circle cx="310.0" cy="699.0" r="7.5" fill="#6929c4" stroke="#ffffff" stroke-width="1.5"/></g>
 <rect x="32" y="753" width="18" height="18" fill="#fbf5e6" stroke="#cdb98f"/>
 <text class="sans ink2" x="58.0" y="766.0" font-size="13">Calm qubit</text>
 <rect x="162" y="753" width="18" height="18" fill="#f6c86b" stroke="#cdb98f"/>
@@ -410,7 +411,24 @@ Blocked by a shaky rung</title><line x1="659.0" y1="680.0" x2="673.0" y2="680.0"
 <line x1="466" y1="782" x2="466" y2="802" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="3 2"/><line x1="476" y1="782" x2="476" y2="802" stroke="#b3261e" stroke-width="2.5" stroke-dasharray="3 2"/><line x1="466" y1="786" x2="476" y2="786" stroke="#b3261e" stroke-width="2"/><line x1="466" y1="792" x2="476" y2="792" stroke="#b3261e" stroke-width="2"/><line x1="466" y1="798" x2="476" y2="798" stroke="#b3261e" stroke-width="2"/>
 <text class="sans ink2" x="488.0" y="796.0" font-size="13">Blocked: a storm on the middle qubit or a shaky rung</text>
 <text class="serif ink" x="734.0" y="126.0" font-size="20">Today's quantum roll</text>
-<rect x="734.0" y="144.0" width="84" height="84" rx="15.1" fill="#ffffff" stroke="#1f2328" stroke-width="2.1"/><text x="776.0" y="201.1" font-size="42" text-anchor="middle" fill="#1f2328" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">?</text>
-<text class="sans ink2" x="834.0" y="192.0" font-size="14">Waiting for the</text>
-<text class="sans ink2" x="834.0" y="210.0" font-size="14">first roll</text>
+<rect x="734.0" y="144.0" width="84" height="84" rx="15.1" fill="#ffffff" stroke="#1f2328" stroke-width="2.1"/><circle cx="755.0" cy="165.0" r="7.1" fill="#1f2328"/><circle cx="797.0" cy="165.0" r="7.1" fill="#1f2328"/><circle cx="755.0" cy="186.0" r="7.1" fill="#1f2328"/><circle cx="797.0" cy="186.0" r="7.1" fill="#1f2328"/><circle cx="755.0" cy="207.0" r="7.1" fill="#1f2328"/><circle cx="797.0" cy="207.0" r="7.1" fill="#1f2328"/>
+<text class="sans ink" x="834.0" y="178.0" font-size="20" font-weight="600">Rolled a 6</text>
+<text class="sans ink2" x="834.0" y="200.0" font-size="13">Measured |101⟩</text>
+<text class="sans ink2" x="834.0" y="218.0" font-size="13">on ibm_fez</text>
+<text class="sans ink2" x="734.0" y="256.0" font-size="12.5">Three qubits were put into</text>
+<text class="sans ink2" x="734.0" y="273.0" font-size="12.5">superposition with Hadamard gates</text>
+<text class="sans ink2" x="734.0" y="290.0" font-size="12.5">and measured, giving 0 to 7.</text>
+<text class="sans ink2" x="734.0" y="307.0" font-size="12.5">Outcomes 6 and 7 are discarded to</text>
+<text class="sans ink2" x="734.0" y="324.0" font-size="12.5">keep the dice fair (4 today), then 1</text>
+<text class="sans ink2" x="734.0" y="341.0" font-size="12.5">is added.</text>
+<text class="serif ink" x="734.0" y="374.0" font-size="17">What happened</text>
+<text class="serif ink" x="734.0" y="396.0" font-size="15" font-style="italic">Moved from square 1 to 7.</text>
+<text class="sans ink2" x="734.0" y="430.0" font-size="13">Square</text>
+<text class="sans ink" x="968.0" y="430.0" font-size="13" font-weight="600" text-anchor="end">7 of 128</text>
+<text class="sans ink2" x="734.0" y="452.0" font-size="13">Game</text>
+<text class="sans ink" x="968.0" y="452.0" font-size="13" font-weight="600" text-anchor="end">1, turn 1</text>
+<text class="sans ink2" x="734.0" y="474.0" font-size="13">Games finished</text>
+<text class="sans ink" x="968.0" y="474.0" font-size="13" font-weight="600" text-anchor="end">0</text>
+<text class="sans ink2" x="734.0" y="506.0" font-size="13">Recent rolls</text>
+<rect x="734.0" y="516.0" width="20" height="20" rx="3.6" fill="#ffffff" stroke="#1f2328" stroke-width="1.0"/><circle cx="739.0" cy="521.0" r="1.7" fill="#1f2328"/><circle cx="749.0" cy="521.0" r="1.7" fill="#1f2328"/><circle cx="739.0" cy="526.0" r="1.7" fill="#1f2328"/><circle cx="749.0" cy="526.0" r="1.7" fill="#1f2328"/><circle cx="739.0" cy="531.0" r="1.7" fill="#1f2328"/><circle cx="749.0" cy="531.0" r="1.7" fill="#1f2328"/>
 </svg>

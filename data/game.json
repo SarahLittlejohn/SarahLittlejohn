@@ -1,0 +1,27 @@
+{
+  "event": {
+    "from": 0,
+    "kind": "move",
+    "landed": 6,
+    "qubit": 146,
+    "to": 6
+  },
+  "finished": false,
+  "game": 1,
+  "games_finished": 0,
+  "pending_job": null,
+  "position": 6,
+  "previous": 0,
+  "recent_rolls": [
+    6
+  ],
+  "roll": {
+    "backend": "ibm_fez",
+    "bits": "101",
+    "discarded": 4,
+    "job_id": "dbea0c7pc3tc739lb4pg",
+    "rolled_at": "2026-10-24T12:10:31+00:00",
+    "value": 6
+  },
+  "turn": 1
+}
