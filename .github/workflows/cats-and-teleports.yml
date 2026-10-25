@@ -1,4 +1,4 @@
-name: Qubit snakes and ladders
+name: Cats and Teleports
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: qubit-snakes
+  group: cats-and-teleports
   cancel-in-progress: false
 
 jobs:
@@ -33,11 +33,11 @@ jobs:
         env:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
-        run: python qubit_snakes.py
+        run: python cats_and_teleports.py
 
       - name: Commit if changed
         run: |
-          git add qubit-snakes.svg data/game.json
+          git add cats-and-teleports.svg data/game.json
           if git diff --cached --quiet; then
             echo "Nothing changed"
             exit 0

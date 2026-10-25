@@ -1,5 +1,3 @@
-<img src="qubit-snakes.svg" width="100%" alt="A cats and ladders board drawn as IBM's Fez quantum chip, showing today's quantum dice roll and where the pawn landed.">
+<img src="cats-and-teleports.svg" width="100%" alt="Cats and Teleports: a board game drawn on the qubits of IBM Fez, showing today's quantum dice roll.">
 
-A game that plays itself, one move a day, on the qubits of IBM's Fez processor. Every circle is a qubit, numbered in order of play. The ladders are the bridge qubits that link one row of the chip to the next: you can climb one if both of its couplers have a CZ error below 1% and there's no scary cat on the bridge qubit. Noisy qubits are cats: a scary cat (readout error above 2%) chases you back 3, and a grumpy cat (1.2% to 2%) swats you back 2.
-
-Every morning at 07:30 UTC a [GitHub Action](.github/workflows/qubit-snakes.yml) runs [qubit_snakes.py](qubit_snakes.py), which rolls the dice by putting three qubits into superposition on a real IBM Quantum processor and measuring them.
+**Cats and Teleports** plays itself, one roll a day, on the qubits of IBM Fez. Cats on noisy qubits send you back; teleports on the bridge qubits jump you up or down a row. The dice is three qubits in superposition, measured on a real IBM Quantum processor by a [daily Action](.github/workflows/cats-and-teleports.yml).

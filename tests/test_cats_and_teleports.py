@@ -1,6 +1,6 @@
 import pytest
 
-import qubit_snakes as qs
+import cats_and_teleports as qs
 
 
 @pytest.fixture(scope="module")
@@ -17,7 +17,7 @@ def square_of(board, qubit):
 
 
 def first_calm_square(board, start=1):
-    return next(i for i in range(start, board.last) if board.risk(board.path[i]) == "calm" and board.path[i] not in board.ladders)
+    return next(i for i in range(start, board.last) if board.risk(board.path[i]) == "calm" and board.path[i] not in board.teleports)
 
 
 def test_board_snakes_up_from_the_bottom_left(board):
@@ -27,12 +27,13 @@ def test_board_snakes_up_from_the_bottom_left(board):
     assert board.path[-1] == 0
 
 
-def test_bridge_qubits_become_ladders(board):
-    blocked = {ladder.middle: ladder.reason for ladder in board.ladders.values() if not ladder.is_open}
+def test_bridge_qubits_become_teleports_reachable_from_both_ends(board):
+    teleports = {t.middle: t for t in board.teleports.values()}
+    broken = {t.middle: t.reason for t in teleports.values() if not t.is_working}
 
-    assert len(board.ladders) == 28
-    assert blocked == {17: "coupler", 78: "scary", 116: "coupler", 117: "coupler", 119: "scary", 139: "coupler"}
-    assert all(square_of(board, l.top) > square_of(board, l.foot) for l in board.ladders.values())
+    assert len(teleports) == 28
+    assert len(board.teleports) == 56
+    assert broken == {17: "coupler", 78: "scary", 116: "coupler", 117: "coupler", 119: "scary", 139: "coupler"}
 
 
 def test_plain_move(board):
@@ -54,30 +55,41 @@ def test_noisy_qubits_send_you_back(board, risk, penalty):
 
 
 def test_penalty_never_goes_below_start(board):
-    board = qs.Board(board.name, board.path, board.coords, {**board.readout, board.path[1]: 0.5}, board.ladders, board.gate)
+    board = qs.Board(board.name, board.path, board.coords, {**board.readout, board.path[1]: 0.5}, board.teleports, board.gate)
 
     to, event = qs.take_turn(board, 0, 1)
 
     assert (to, event["kind"]) == (0, "scary")
 
 
-def test_open_ladder_is_climbed(board):
-    ladder = board.ladders[143]
-    foot = square_of(board, 143)
+def test_teleport_takes_you_up_from_the_lower_end(board):
+    teleport = board.teleports[143]
+    square = square_of(board, 143)
 
-    to, event = qs.take_turn(board, foot - 3, 3)
+    to, event = qs.take_turn(board, square - 3, 3)
 
-    assert ladder.is_open
-    assert (to, event["kind"], event["middle"]) == (square_of(board, ladder.top), "ladder", 136)
+    assert teleport.is_working
+    assert (to, event["kind"], event["middle"]) == (square_of(board, teleport.upper), "teleport", 136)
+    assert qs.event_text(board, event).endswith(f"Teleported up to {to + 1}.")
 
 
-def test_blocked_ladder_is_not_climbed(board):
-    ladder = next(l for l in board.ladders.values() if not l.is_open and board.risk(l.foot) == "calm")
-    square = square_of(board, ladder.foot)
+def test_teleport_takes_you_down_from_the_upper_end(board):
+    teleport = board.teleports[123]
+    square = square_of(board, 123)
+
+    to, event = qs.take_turn(board, square - 2, 2)
+
+    assert (to, event["kind"]) == (square_of(board, teleport.lower), "teleport")
+    assert qs.event_text(board, event).endswith(f"Teleported down to {to + 1}.")
+
+
+def test_broken_teleport_does_nothing(board):
+    teleport = next(t for t in board.teleports.values() if not t.is_working and board.risk(t.lower) == "calm")
+    square = square_of(board, teleport.lower)
 
     to, event = qs.take_turn(board, square - 1, 1)
 
-    assert (to, event["kind"], event["reason"]) == (square, "blocked", ladder.reason)
+    assert (to, event["kind"], event["reason"]) == (square, "broken", teleport.reason)
 
 
 def test_reaching_the_end_finishes_and_next_roll_starts_a_new_game(board):
@@ -125,14 +137,14 @@ def test_simulated_roll_is_a_dice_value():
     assert 1 <= qs.simulated_roll().value <= 6
 
 
-@pytest.mark.parametrize("kind", ["move", "scary", "grumpy", "ladder", "blocked", "finish"])
+@pytest.mark.parametrize("kind", ["move", "scary", "grumpy", "teleport", "broken", "finish"])
 def test_every_event_renders(board, kind):
     event = {"kind": kind, "from": 0, "landed": 5, "to": 3, "qubit": 145, "middle": 136, "reason": "coupler"}
     state = qs.advance({}, board, a_roll()) | {"event": event}
 
     svg = qs.render(board, state)
 
-    assert qs.event_text(board, event).split(",")[0] in svg
+    assert qs.escape(qs.event_text(board, event).split(".")[0]) in svg
 
 
 def test_render_before_first_roll(board):
