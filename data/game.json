@@ -1,10 +1,10 @@
 {
   "event": {
-    "from": 27,
+    "from": 31,
     "kind": "move",
-    "landed": 31,
-    "qubit": 120,
-    "to": 31
+    "landed": 34,
+    "qubit": 102,
+    "to": 34
   },
   "finished": false,
   "game": 1,
@@ -51,18 +51,25 @@
       "job_id": "dbhlj1s2d77s739cvtr0",
       "rolled_at": "2026-10-29T14:37:35+00:00",
       "value": 4
+    },
+    {
+      "backend": "ibm_fez",
+      "bits": "010",
+      "job_id": "dbiai7o1h92s73832o3g",
+      "rolled_at": "2026-10-30T14:30:03+00:00",
+      "value": 3
     }
   ],
   "pending_job": null,
-  "position": 31,
-  "previous": 27,
+  "position": 34,
+  "previous": 31,
   "roll": {
-    "backend": "ibm_marrakesh",
-    "bits": "011",
-    "discarded": 3,
-    "job_id": "dbhlj1s2d77s739cvtr0",
-    "rolled_at": "2026-10-29T14:37:35+00:00",
-    "value": 4
+    "backend": "ibm_fez",
+    "bits": "010",
+    "discarded": 0,
+    "job_id": "dbiai7o1h92s73832o3g",
+    "rolled_at": "2026-10-30T14:30:03+00:00",
+    "value": 3
   },
-  "turn": 6
+  "turn": 7
 }
