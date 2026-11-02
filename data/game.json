@@ -1,10 +1,11 @@
 {
   "event": {
-    "from": 37,
-    "kind": "move",
-    "landed": 38,
-    "qubit": 106,
-    "to": 38
+    "from": 38,
+    "kind": "teleport",
+    "landed": 39,
+    "middle": 97,
+    "qubit": 107,
+    "to": 56
   },
   "finished": false,
   "game": 1,
@@ -72,18 +73,25 @@
       "job_id": "dbjknmgnceqs73ak6q20",
       "rolled_at": "2026-11-01T14:25:37+00:00",
       "value": 1
+    },
+    {
+      "backend": "ibm_marrakesh",
+      "bits": "000",
+      "job_id": "dbkcckt6p51s73cmc010",
+      "rolled_at": "2026-11-02T17:20:26+00:00",
+      "value": 1
     }
   ],
   "pending_job": null,
-  "position": 38,
-  "previous": 37,
+  "position": 56,
+  "previous": 38,
   "roll": {
-    "backend": "ibm_fez",
+    "backend": "ibm_marrakesh",
     "bits": "000",
     "discarded": 0,
-    "job_id": "dbjknmgnceqs73ak6q20",
-    "rolled_at": "2026-11-01T14:25:37+00:00",
+    "job_id": "dbkcckt6p51s73cmc010",
+    "rolled_at": "2026-11-02T17:20:26+00:00",
     "value": 1
   },
-  "turn": 9
+  "turn": 10
 }
