@@ -1,12 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="848" viewBox="0 0 1000 848" role="img" aria-labelledby="qs-title qs-desc">
 <title id="qs-title">Cats and Teleports</title>
 <desc id="qs-desc">Moved from 39 to 40. Teleported up to 57.</desc>
+<defs><filter id="pawn-shadow" x="-50%" y="-50%" width="200%" height="200%">
+  <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.55"/>
+</filter></defs>
 <style>
   .bg { fill: #ffffff; }
   .ink { fill: #1f2328; }
   .ink2 { fill: #59636e; }
   .serif { font-family: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif; }
   .sans { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+  .pulse { opacity: 0; transform-box: fill-box; transform-origin: center; }
+  @keyframes pawn-pulse { from { transform: scale(1); opacity: 0.9; } to { transform: scale(1.8); opacity: 0; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse { animation: pawn-pulse 1.8s ease-out infinite; }
+  }
   @media (prefers-color-scheme: dark) {
     .bg { fill: #0d1117; }
     .ink { fill: #f0f6fc; }
@@ -552,8 +560,9 @@ Readout error 0.5%</title><circle cx="157.0" cy="157.0" r="13" fill="#dfe7fb"/><
 Readout error 1.2%</title><circle cx="119.0" cy="157.0" r="13" fill="#dfe7fb"/><text x="119.0" y="160.5" font-size="10" font-weight="700" text-anchor="middle" fill="#1b2130" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">127</text></g>
 <g><title>Square 128: qubit 0
 Readout error 1.1%</title><circle cx="81.0" cy="157.0" r="13" fill="#dfe7fb"/><text x="81.0" y="160.5" font-size="10" font-weight="700" text-anchor="middle" fill="#1b2130" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">128</text><text x="81.0" y="138.0" font-size="10" text-anchor="middle" fill="#c8a24a" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="600">Finish ★</text></g>
-<g><title>Previous square</title><circle cx="309.0" cy="537.0" r="16" fill="none" stroke="#a371f7" stroke-width="2.5" stroke-dasharray="3 2"/><path d="M307.0,532.0 Q318.0,526.0 329.0,532.0 L323.5,518.0 Q318.0,515.0 312.5,518.0 Z" fill="none" stroke="#a371f7" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="318.0" cy="511.0" r="7" fill="none" stroke="#a371f7" stroke-width="1.5" stroke-dasharray="3 2"/></g>
-<g><title>You are here</title><circle cx="347.0" cy="461.0" r="16" fill="none" stroke="#a371f7" stroke-width="2.5"/><path d="M345.0,456.0 Q356.0,450.0 367.0,456.0 L361.5,442.0 Q356.0,439.0 350.5,442.0 Z" fill="#a371f7" stroke="#ffffff" stroke-width="1.5"/><circle cx="356.0" cy="435.0" r="7" fill="#a371f7" stroke="#ffffff" stroke-width="1.5"/></g>
+<polyline points="347.0,537.0 347.0,461.0" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="1 5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+<g><title>Previous square</title><circle cx="309.0" cy="537.0" r="16" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/></g>
+<g><title>You are here</title><circle class="pulse" cx="347.0" cy="461.0" r="17" fill="none" stroke="#c084fc" stroke-width="3"/><circle cx="347.0" cy="461.0" r="17" fill="none" stroke="#c084fc" stroke-width="3.5"/><g fill="#c084fc" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" filter="url(#pawn-shadow)"><path d="M343.0,456.0 Q359.0,447.0 375.0,456.0 L367.0,435.0 Q359.0,431.0 351.0,435.0 Z"/><circle cx="359.0" cy="425.0" r="10"/></g></g>
 <circle cx="44" cy="770" r="13" fill="#dfe7fb" stroke="#5d6a88" stroke-width="1.5"/>
 <text class="sans ink2" x="64.0" y="774.0" font-size="13">Qubit</text>
 <path d="M142.6,767.1 L141.7,750.0 L151.4,759.6 Z M165.4,767.1 L166.3,750.0 L156.6,759.6 Z" fill="#ef7f72" stroke="#5f140c" stroke-width="0.8" stroke-linejoin="round"/><circle cx="154" cy="771" r="13" fill="#ef7f72"/><path d="M146.0,762.0 L152.0,765.5 M162.0,762.0 L156.0,765.5" stroke="#5f140c" stroke-width="1.6" stroke-linecap="round"/><path d="M147.5,766.5 L151.5,768.0 L148.0,769.0 Z" fill="#5f140c"/><path d="M160.5,766.5 L156.5,768.0 L160.0,769.0 Z" fill="#5f140c"/><path d="M148.9,779.0 L152.1,779.0 L150.5,782.5 Z" fill="#ffffff" stroke="#5f140c" stroke-width="0.6"/><path d="M155.9,779.0 L159.1,779.0 L157.5,782.5 Z" fill="#ffffff" stroke="#5f140c" stroke-width="0.6"/>
@@ -568,8 +577,8 @@ Readout error 1.1%</title><circle cx="81.0" cy="157.0" r="13" fill="#dfe7fb"/><t
 <g><title>Three qubits in superposition, measured: 0 to 7. Six and seven are discarded, then 1 is added.</title><rect x="730.0" y="144.0" width="84" height="84" rx="15.1" fill="#ffffff" stroke="#1f2328" stroke-width="2.1"/><circle cx="772.0" cy="186.0" r="7.1" fill="#1f2328"/></g>
 <text class="sans ink" x="830.0" y="182.0" font-size="20" font-weight="600">Rolled a 1</text>
 <text class="sans ink2" x="830.0" y="204.0" font-size="13">|000⟩ on ibm_marrakesh</text>
-<text class="serif ink" x="730.0" y="266.0" font-size="15" font-style="italic">Moved from 39 to 40. Teleported up</text>
-<text class="serif ink" x="730.0" y="286.0" font-size="15" font-style="italic">to 57.</text>
+<text class="serif ink" x="730.0" y="266.0" font-size="15" font-style="italic">Moved from 39 to 40. Teleported</text>
+<text class="serif ink" x="730.0" y="286.0" font-size="15" font-style="italic">up to 57.</text>
 <text class="sans ink2" x="730.0" y="320.0" font-size="13">Square</text>
 <text class="sans ink" x="968.0" y="320.0" font-size="13" font-weight="600" text-anchor="end">57 of 128</text>
 <text class="sans ink2" x="730.0" y="342.0" font-size="13">Turn</text>

@@ -52,7 +52,7 @@ QUBIT_INK = {"calm": "#1b2130", "grumpy": "#5c3a00", "scary": "#5f140c"}
 PENALTY_INK = {"grumpy": "#f6c86b", "scary": "#ff8f82"}
 TELEPORT = "#56d4dd"
 BROKEN = "#ff6b6b"
-PAWN = "#a371f7"
+PAWN = "#c084fc"
 PIP = "#1f2328"
 
 
@@ -279,22 +279,46 @@ def roll_from_bitstrings(bitstrings: list[str], backend: str, job_id: str | None
 
 
 def take_turn(board: Board, position: int, roll: int) -> tuple[int, dict]:
+    """Move, then keep applying whatever is on the square you end up on.
+
+    A cat or a teleport can drop you onto another cat or teleport, so effects
+    chain. Each teleport works once per turn and the chain stops if it comes
+    back to a square it has already visited, so it always ends.
+    """
     landed = min(position + roll, board.last)
-    event = {"kind": "move", "from": position, "landed": landed, "to": landed, "qubit": board.path[landed]}
+    event = {"kind": "move", "from": position, "landed": landed, "to": landed, "qubit": board.path[landed], "steps": []}
     if landed == board.last:
         return landed, {**event, "kind": "finish"}
-    qubit = board.path[landed]
+
+    square, visited, used = landed, {landed}, set()
+    while True:
+        step = square_effect(board, square, used)
+        if step is None:
+            break
+        event["steps"].append(step)
+        if "to" not in step or step["to"] in visited:
+            square = step.get("to", square)
+            break
+        square = step["to"]
+        visited.add(square)
+
+    first = event["steps"][0] if event["steps"] else {}
+    extras = {key: first[key] for key in ("kind", "middle", "reason") if key in first}
+    return square, {**event, **extras, "to": square}
+
+
+def square_effect(board: Board, square: int, used: set[int]) -> dict | None:
+    qubit = board.path[square]
     risk = board.risk(qubit)
     if risk != "calm":
-        to = max(landed - PENALTY[risk], 0)
-        return to, {**event, "kind": risk, "to": to}
+        return {"kind": risk, "at": square, "to": max(square - PENALTY[risk], 0), "qubit": qubit}
     teleport = board.teleports.get(qubit)
-    if teleport is None:
-        return landed, event
+    if teleport is None or teleport.middle in used:
+        return None
+    used.add(teleport.middle)
     if not teleport.is_working:
-        return landed, {**event, "kind": "broken", "middle": teleport.middle, "reason": teleport.reason}
-    to = board.path.index(teleport.other_end(qubit))
-    return to, {**event, "kind": "teleport", "to": to, "middle": teleport.middle}
+        return {"kind": "broken", "at": square, "middle": teleport.middle, "reason": teleport.reason}
+    return {"kind": "teleport", "at": square, "to": board.path.index(teleport.other_end(qubit)), "middle": teleport.middle}
 
 
 def advance(state: dict, board: Board, roll: Roll) -> dict:
@@ -336,18 +360,35 @@ def save_state(path: Path, state: dict) -> None:
 
 
 def event_text(board: Board, event: dict) -> str:
-    landed, to = event["landed"] + 1, event["to"] + 1
-    start = f"Moved from {event['from'] + 1} to {landed}."
-    kind = event["kind"]
-    if kind == "finish":
-        return f"{start} Finished! A new game starts tomorrow."
-    if kind in PENALTY:
-        return f"{start} A {kind} cat! Back {PENALTY[kind]} to {to}."
-    if kind == "teleport":
-        return f"{start} Teleported {'up' if to > landed else 'down'} to {to}."
-    if kind == "broken":
-        return f"{start} The teleport is broken."
-    return start
+    sentences = [f"Moved from {event['from'] + 1} to {event['landed'] + 1}."]
+    if event["kind"] == "finish":
+        return f"{sentences[0]} Finished! A new game starts tomorrow."
+    steps = event_steps(event)
+    if len(steps) > 2:
+        squares = "\u00a0\u2192 ".join(str(square + 1) for square in [event["landed"]] + [step["to"] for step in steps if "to" in step])
+        cats = sum(step["kind"] in PENALTY for step in steps)
+        teleports = sum(step["kind"] == "teleport" for step in steps)
+        tally = " and ".join(
+            f"{count} {name}{'s' if count != 1 else ''}" for count, name in ((cats, "cat"), (teleports, "teleport")) if count
+        )
+        return f"{sentences[0]} Chain reaction through {tally}: {squares}."
+    for step in steps:
+        if step["kind"] in PENALTY:
+            sentences.append(f"A {step['kind']} cat! Back {PENALTY[step['kind']]} to {step['to'] + 1}.")
+        elif step["kind"] == "teleport":
+            sentences.append(f"Teleported {'up' if step['to'] > step['at'] else 'down'} to {step['to'] + 1}.")
+        elif step["kind"] == "broken":
+            sentences.append("The teleport is broken.")
+    return " ".join(sentences)
+
+
+def event_steps(event: dict) -> list[dict]:
+    """Events saved before effects chained hold a single effect and no steps."""
+    if "steps" in event:
+        return event["steps"]
+    if event["kind"] in ("move", "finish"):
+        return []
+    return [{"kind": event["kind"], "at": event["landed"], "to": event["to"]}]
 
 
 def render(board: Board, state: dict) -> str:
@@ -373,6 +414,7 @@ def render(board: Board, state: dict) -> str:
     for index, qubit in enumerate(board.path):
         out.append(qubit_svg(board, index, qubit, centre(qubit)))
     if state:
+        out.append(trail(board, state["event"], centre))
         if state["previous"] != state["position"]:
             out.append(pawn(*centre(board.path[state["previous"]]), ghost=True))
         out.append(pawn(*centre(board.path[state["position"]])))
@@ -399,12 +441,20 @@ def render(board: Board, state: dict) -> str:
     )
 
 
-STYLE = f"""<style>
+STYLE = f"""<defs><filter id="pawn-shadow" x="-50%" y="-50%" width="200%" height="200%">
+  <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.55"/>
+</filter></defs>
+<style>
   .bg {{ fill: #ffffff; }}
   .ink {{ fill: #1f2328; }}
   .ink2 {{ fill: #59636e; }}
   .serif {{ font-family: {SERIF}; }}
   .sans {{ font-family: {SANS}; }}
+  .pulse {{ opacity: 0; transform-box: fill-box; transform-origin: center; }}
+  @keyframes pawn-pulse {{ from {{ transform: scale(1); opacity: 0.9; }} to {{ transform: scale(1.8); opacity: 0; }} }}
+  @media (prefers-reduced-motion: no-preference) {{
+    .pulse {{ animation: pawn-pulse 1.8s ease-out infinite; }}
+  }}
   @media (prefers-color-scheme: dark) {{
     .bg {{ fill: #0d1117; }}
     .ink {{ fill: #f0f6fc; }}
@@ -586,21 +636,35 @@ def number(x: float, y: float, value: int, ink: str, size: float = 10) -> str:
 
 
 def pawn(cx: float, cy: float, ghost: bool = False) -> str:
-    """The pawn stands on top of its qubit, with a ring round it, so the square number stays readable."""
-    ring = f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{QUBIT_RADIUS + 3}" fill="none" stroke="{PAWN}" stroke-width="2.5"{" stroke-dasharray=\"3 2\"" if ghost else ""}/>'
-    cx, cy = cx + 9, cy - 19
-    style = (
-        f'fill="none" stroke="{PAWN}" stroke-width="1.5" stroke-dasharray="3 2"'
-        if ghost
-        else f'fill="{PAWN}" stroke="#ffffff" stroke-width="1.5"'
+    """A large pawn standing above its qubit, with a ring (pulsing, motion permitting) so it is easy to spot."""
+    if ghost:
+        return (
+            f'<g><title>Previous square</title><circle cx="{cx:.1f}" cy="{cy:.1f}" r="{QUBIT_RADIUS + 3}" fill="none" '
+            f'stroke="{PAWN}" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/></g>'
+        )
+    rings = (
+        f'<circle class="pulse" cx="{cx:.1f}" cy="{cy:.1f}" r="{QUBIT_RADIUS + 4}" fill="none" stroke="{PAWN}" stroke-width="3"/>'
+        f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{QUBIT_RADIUS + 4}" fill="none" stroke="{PAWN}" stroke-width="3.5"/>'
     )
-    label = "Previous square" if ghost else "You are here"
+    px, py = cx + 12, cy - 26
+    body = (
+        f'<path d="M{px - 16:.1f},{py + 21:.1f} Q{px:.1f},{py + 12:.1f} {px + 16:.1f},{py + 21:.1f} '
+        f'L{px + 8:.1f},{py:.1f} Q{px:.1f},{py - 4:.1f} {px - 8:.1f},{py:.1f} Z"/>'
+        f'<circle cx="{px:.1f}" cy="{py - 10:.1f}" r="10"/>'
+    )
     return (
-        f"<g><title>{label}</title>{ring}"
-        f'<path d="M{cx - 11:.1f},{cy + 14:.1f} Q{cx:.1f},{cy + 8:.1f} {cx + 11:.1f},{cy + 14:.1f} L{cx + 5.5:.1f},{cy:.1f} Q{cx:.1f},{cy - 3:.1f} {cx - 5.5:.1f},{cy:.1f} Z" {style}/>'
-        f'<circle cx="{cx:.1f}" cy="{cy - 7:.1f}" r="7" {style}/>'
-        "</g>"
+        f'<g><title>You are here</title>{rings}'
+        f'<g fill="{PAWN}" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" filter="url(#pawn-shadow)">{body}</g></g>'
     )
+
+
+def trail(board: Board, event: dict, centre) -> str:
+    """A dotted line through every square this turn's effects moved the pawn to."""
+    squares = [event["landed"]] + [step["to"] for step in event_steps(event) if "to" in step]
+    if len(squares) < 2:
+        return ""
+    points = " ".join(f"{x:.1f},{y:.1f}" for x, y in (centre(board.path[square]) for square in squares))
+    return f'<polyline points="{points}" fill="none" stroke="{PAWN}" stroke-width="2.5" stroke-dasharray="1 5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>'
 
 
 def legend(out: list[str], left: float, top: float) -> float:
@@ -652,7 +716,7 @@ def sidebar(out: list[str], left: float, top: float, width: float, board: Board,
     out.append(text(left + 100, die_top + 60, f"|{roll['bits']}\u27e9 on {roll['backend']}", "sans ink2", 13))
 
     y = die_top + 122
-    for line in wrap(event_text(board, state["event"]), width, 15, 0.45):
+    for line in wrap(event_text(board, state["event"]), width, 15, 0.5):
         out.append(text(left, y, line, "serif ink", 15, italic=True))
         y += 20
     y += 14
@@ -711,7 +775,7 @@ def text(x, y, content, cls, size, anchor="start", weight=None, italic=False) ->
 def wrap(content: str, width: float, size: float, char_em: float) -> list[str]:
     limit = int(width / (size * char_em))
     lines, line = [], ""
-    for word in content.split():
+    for word in content.split(" "):
         candidate = f"{line} {word}".strip()
         if len(candidate) > limit and line:
             lines.append(line)
