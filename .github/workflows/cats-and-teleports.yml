@@ -15,8 +15,7 @@ concurrency:
 jobs:
   roll:
     runs-on: ubuntu-latest
-    # The script waits up to 40 minutes for the QPU queue, then saves the job to pick up tomorrow.
-    timeout-minutes: 55
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -29,10 +28,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Roll the quantum dice and move
-        env:
-          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
-          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+      - name: Roll the quantum dice on the Qiskit simulator and move
         run: python cats_and_teleports.py
 
       - name: Commit if changed
