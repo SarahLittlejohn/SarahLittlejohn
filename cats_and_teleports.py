@@ -3,11 +3,12 @@
 The board is the heavy-hex layout of IBM's Fez processor (the fake_fez
 calibration snapshot). Row qubits are the squares and bridge qubits are
 teleports between rows. Noisy qubits are cats that send you back. Each day
-the dice is rolled by measuring three qubits in superposition on a real
-IBM Quantum processor.
+the dice is rolled by measuring three qubits in superposition on Qiskit's
+simulator, or on a real IBM Quantum processor with --qpu.
 
-    python cats_and_teleports.py           # roll on a real QPU, needs IBM_QUANTUM_TOKEN
-    python cats_and_teleports.py --demo    # roll on a local simulator, state not saved
+    python cats_and_teleports.py           # roll on the Qiskit simulator and save the game
+    python cats_and_teleports.py --qpu     # roll on a real QPU, needs IBM_QUANTUM_TOKEN
+    python cats_and_teleports.py --demo    # roll on the simulator without saving
 """
 
 from __future__ import annotations
@@ -105,7 +106,7 @@ def main() -> None:
     state_path = Path(args.state)
     state = load_state(state_path)
 
-    if args.demo:
+    if not args.qpu:
         roll = simulated_roll()
     else:
         roll, pending = quantum_roll(state.get("pending_job"))
@@ -123,7 +124,8 @@ def main() -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--demo", action="store_true", help="roll on a local simulator; needs no token, saves no state")
+    parser.add_argument("--qpu", action="store_true", help="roll on a real IBM Quantum processor; needs IBM_QUANTUM_TOKEN")
+    parser.add_argument("--demo", action="store_true", help="save no state")
     parser.add_argument("--out", default="cats-and-teleports.svg")
     parser.add_argument("--state", default="data/game.json")
     return parser.parse_args()
@@ -216,7 +218,7 @@ def simulated_roll() -> Roll:
     from qiskit.primitives import StatevectorSampler
 
     result = StatevectorSampler().run([dice_circuit()], shots=DICE_SHOTS).result()
-    return roll_from_bitstrings(result[0].data.meas.get_bitstrings(), "local simulator", None)
+    return roll_from_bitstrings(result[0].data.meas.get_bitstrings(), "Qiskit simulator", None)
 
 
 def quantum_roll(pending_job: str | None) -> tuple[Roll | None, str | None]:
@@ -226,7 +228,7 @@ def quantum_roll(pending_job: str | None) -> tuple[Roll | None, str | None]:
 
     token = os.environ.get("IBM_QUANTUM_TOKEN")
     if not token:
-        sys.exit("IBM_QUANTUM_TOKEN is not set (use --demo to run without one)")
+        sys.exit("IBM_QUANTUM_TOKEN is not set (leave out --qpu to roll on the simulator)")
     service = QiskitRuntimeService(
         channel="ibm_quantum_platform",
         token=token,
