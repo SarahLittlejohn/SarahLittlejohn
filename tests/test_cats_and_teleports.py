@@ -51,7 +51,7 @@ def test_noisy_qubits_send_you_back(board, risk, penalty):
     to, event = qs.take_turn(board, landed - 1, 1)
 
     assert event["kind"] == risk
-    assert to == landed - penalty
+    assert event["steps"][0]["to"] == landed - penalty
 
 
 def test_penalty_never_goes_below_start(board):
@@ -149,3 +149,29 @@ def test_every_event_renders(board, kind):
 
 def test_render_before_first_roll(board):
     assert "Waiting for the" in qs.render(board, {})
+
+
+def test_effects_chain_after_a_teleport(board):
+    # The real roll on turn 10: a 1 from square 39 hit the teleport to 57, a grumpy cat.
+    to, event = qs.take_turn(board, 38, 1)
+
+    assert [step["kind"] for step in event["steps"][:2]] == ["teleport", "grumpy"]
+    assert event["steps"][1]["at"] == 56
+    assert qs.event_text(board, event).replace("\xa0", " ").startswith("Moved from 39 to 40. Chain reaction through 8 cats and 2 teleports: 40 → 57 → 55")
+    assert to == event["steps"][-1]["to"]
+
+
+def test_every_move_ends_and_uses_each_teleport_at_most_once(board):
+    for position in range(board.last):
+        for roll in range(1, 7):
+            to, event = qs.take_turn(board, position, roll)
+            teleports = [step["middle"] for step in event["steps"] if step["kind"] in ("teleport", "broken")]
+
+            assert 0 <= to <= board.last
+            assert len(teleports) == len(set(teleports))
+
+
+def test_events_saved_before_chaining_still_read_back(board):
+    legacy = {"from": 38, "kind": "teleport", "landed": 39, "middle": 97, "qubit": 107, "to": 56}
+
+    assert qs.event_text(board, legacy) == "Moved from 39 to 40. Teleported up to 57."
