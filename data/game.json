@@ -1,11 +1,11 @@
 {
   "event": {
-    "from": 38,
-    "kind": "teleport",
-    "landed": 39,
-    "middle": 97,
-    "qubit": 107,
-    "to": 56
+    "from": 56,
+    "kind": "move",
+    "landed": 59,
+    "qubit": 84,
+    "steps": [],
+    "to": 59
   },
   "finished": false,
   "game": 1,
@@ -80,18 +80,25 @@
       "job_id": "dbkcckt6p51s73cmc010",
       "rolled_at": "2026-11-02T17:20:26+00:00",
       "value": 1
+    },
+    {
+      "backend": "Qiskit simulator",
+      "bits": "010",
+      "job_id": null,
+      "rolled_at": "2026-11-08T14:25:36+00:00",
+      "value": 3
     }
   ],
   "pending_job": null,
-  "position": 56,
-  "previous": 38,
+  "position": 59,
+  "previous": 56,
   "roll": {
-    "backend": "ibm_marrakesh",
-    "bits": "000",
-    "discarded": 0,
-    "job_id": "dbkcckt6p51s73cmc010",
-    "rolled_at": "2026-11-02T17:20:26+00:00",
-    "value": 1
+    "backend": "Qiskit simulator",
+    "bits": "010",
+    "discarded": 1,
+    "job_id": null,
+    "rolled_at": "2026-11-08T14:25:36+00:00",
+    "value": 3
   },
-  "turn": 10
+  "turn": 11
 }
