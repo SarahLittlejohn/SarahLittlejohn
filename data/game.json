@@ -1,17 +1,10 @@
 {
   "event": {
-    "from": 59,
-    "kind": "teleport",
-    "landed": 62,
-    "middle": 76,
-    "qubit": 81,
+    "from": 63,
+    "kind": "grumpy",
+    "landed": 65,
+    "qubit": 61,
     "steps": [
-      {
-        "at": 62,
-        "kind": "teleport",
-        "middle": 76,
-        "to": 65
-      },
       {
         "at": 65,
         "kind": "grumpy",
@@ -108,18 +101,25 @@
       "job_id": null,
       "rolled_at": "2026-11-09T17:44:12+00:00",
       "value": 3
+    },
+    {
+      "backend": "Qiskit simulator",
+      "bits": "001",
+      "job_id": null,
+      "rolled_at": "2026-11-10T15:43:42+00:00",
+      "value": 2
     }
   ],
   "pending_job": null,
   "position": 63,
-  "previous": 59,
+  "previous": 63,
   "roll": {
     "backend": "Qiskit simulator",
-    "bits": "010",
-    "discarded": 0,
+    "bits": "001",
+    "discarded": 2,
     "job_id": null,
-    "rolled_at": "2026-11-09T17:44:12+00:00",
-    "value": 3
+    "rolled_at": "2026-11-10T15:43:42+00:00",
+    "value": 2
   },
-  "turn": 12
+  "turn": 13
 }
