@@ -1,11 +1,11 @@
 {
   "event": {
-    "from": 87,
+    "from": 89,
     "kind": "move",
-    "landed": 89,
-    "qubit": 46,
+    "landed": 95,
+    "qubit": 40,
     "steps": [],
-    "to": 89
+    "to": 95
   },
   "finished": false,
   "game": 1,
@@ -164,18 +164,25 @@
       "job_id": null,
       "rolled_at": "2026-11-19T16:42:34+00:00",
       "value": 2
+    },
+    {
+      "backend": "Qiskit simulator",
+      "bits": "101",
+      "job_id": null,
+      "rolled_at": "2026-11-20T16:18:28+00:00",
+      "value": 6
     }
   ],
   "pending_job": null,
-  "position": 89,
-  "previous": 87,
+  "position": 95,
+  "previous": 89,
   "roll": {
     "backend": "Qiskit simulator",
-    "bits": "001",
+    "bits": "101",
     "discarded": 0,
     "job_id": null,
-    "rolled_at": "2026-11-19T16:42:34+00:00",
-    "value": 2
+    "rolled_at": "2026-11-20T16:18:28+00:00",
+    "value": 6
   },
-  "turn": 22
+  "turn": 23
 }
