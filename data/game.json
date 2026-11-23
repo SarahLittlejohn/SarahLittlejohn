@@ -1,25 +1,11 @@
 {
   "event": {
-    "from": 98,
-    "kind": "teleport",
-    "landed": 101,
-    "middle": 37,
-    "qubit": 25,
-    "steps": [
-      {
-        "at": 101,
-        "kind": "teleport",
-        "middle": 37,
-        "to": 90
-      },
-      {
-        "at": 90,
-        "kind": "scary",
-        "qubit": 45,
-        "to": 87
-      }
-    ],
-    "to": 87
+    "from": 87,
+    "kind": "move",
+    "landed": 91,
+    "qubit": 44,
+    "steps": [],
+    "to": 91
   },
   "finished": false,
   "game": 1,
@@ -199,18 +185,25 @@
       "job_id": null,
       "rolled_at": "2026-11-22T15:33:23+00:00",
       "value": 3
+    },
+    {
+      "backend": "Qiskit simulator",
+      "bits": "011",
+      "job_id": null,
+      "rolled_at": "2026-11-23T19:24:36+00:00",
+      "value": 4
     }
   ],
   "pending_job": null,
-  "position": 87,
-  "previous": 98,
+  "position": 91,
+  "previous": 87,
   "roll": {
     "backend": "Qiskit simulator",
-    "bits": "010",
+    "bits": "011",
     "discarded": 0,
     "job_id": null,
-    "rolled_at": "2026-11-22T15:33:23+00:00",
-    "value": 3
+    "rolled_at": "2026-11-23T19:24:36+00:00",
+    "value": 4
   },
-  "turn": 25
+  "turn": 26
 }
